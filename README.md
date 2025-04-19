@@ -2,6 +2,74 @@
 
 PsiConnect es una plataforma minimalista diseñada específicamente para psicólogos, enfocada en la gestión eficiente de pacientes, citas, comunicaciones y documentación.
 
+## Esquema de la Base de Datos
+
+### Tablas
+
+1. **users** (psicólogos):
+   - id (serial, primary key)
+   - username (texto, único)
+   - password (texto)
+   - email (texto, único)
+   - full_name (texto)
+   - specialty (texto)
+   - bio (texto, opcional)
+   - education (texto, opcional)
+   - certifications (texto, opcional)
+   - profile_image (texto, opcional)
+
+2. **patients**:
+   - id (serial, primary key)
+   - psychologist_id (referencia a users.id)
+   - name (texto)
+   - email (texto)
+   - phone (texto, opcional)
+   - notes (texto, opcional)
+
+3. **appointments**:
+   - id (serial, primary key)
+   - psychologist_id (referencia a users.id)
+   - patient_id (referencia a patients.id)
+   - date (timestamp)
+   - duration (minutos)
+   - status (enum: scheduled/completed/cancelled/missed)
+   - notes (texto, opcional)
+
+4. **availability**:
+   - id (serial, primary key)
+   - psychologist_id (referencia a users.id)
+   - day_of_week (0-6 para domingo-sábado)
+   - start_time (formato HH:MM)
+   - end_time (formato HH:MM)
+
+5. **message_templates**:
+   - id (serial, primary key)
+   - psychologist_id (referencia a users.id)
+   - type (enum: appointment_reminder/follow_up/welcome/cancellation/rescheduling/custom)
+   - title (texto)
+   - content (texto)
+
+6. **consent_forms**:
+   - id (serial, primary key)
+   - psychologist_id (referencia a users.id)
+   - title (texto)
+   - content (texto)
+
+7. **patient_consents**:
+   - id (serial, primary key)
+   - patient_id (referencia a patients.id)
+   - consent_form_id (referencia a consent_forms.id)
+   - signed_at (timestamp)
+   - signature (texto)
+
+8. **contact_requests**:
+   - id (serial, primary key)
+   - name (texto)
+   - email (texto)
+   - specialty (texto)
+   - message (texto, opcional)
+   - created_at (timestamp con valor por defecto)
+
 ## Estado Actual del Proyecto
 
 ### Características Implementadas ✅
