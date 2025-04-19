@@ -16,11 +16,11 @@ import {
   SelectContent,
   SelectTrigger,
   SelectValue,
+  SelectItem
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
-import { SelectItem } from "@/components/ui/select-item";
 import { Link } from "wouter";
 
 const formSchema = z.object({
