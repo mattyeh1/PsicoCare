@@ -6,6 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  generateMessage, 
+  improveMessage, 
+  suggestTitle,
+  type MessageGenerationParams 
+} from "@/services/ai-service";
 import {
   Card,
   CardContent,
@@ -42,9 +48,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Copy, MessageSquare } from "lucide-react";
+import { Plus, Pencil, Copy, MessageSquare, Wand2, Sparkles, RocketIcon } from "lucide-react";
 import { MessageTemplate, Patient } from "@shared/schema";
 import MessageTemplates from "@/components/messaging/MessageTemplates";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Form schema for creating message templates
 const templateFormSchema = z.object({
@@ -82,6 +89,9 @@ const Messages = () => {
   const [isComposing, setIsComposing] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingWithAI, setIsGeneratingWithAI] = useState(false);
+  const [isSuggestingTitle, setIsSuggestingTitle] = useState(false);
+  const [isImprovingMessage, setIsImprovingMessage] = useState(false);
 
   // Fetch message templates
   const { data: templates, isLoading: templatesLoading } = useQuery<MessageTemplate[]>({
@@ -152,6 +162,131 @@ const Messages = () => {
     }
     
     messageForm.setValue("message", content);
+  };
+
+  // Generar una plantilla de mensaje con IA
+  const handleGenerateWithAI = async () => {
+    try {
+      setIsGeneratingWithAI(true);
+      const messageType = templateForm.getValues("type");
+      
+      if (!messageType) {
+        toast({
+          title: "Error",
+          description: "Por favor selecciona primero un tipo de mensaje",
+          variant: "destructive",
+        });
+        setIsGeneratingWithAI(false);
+        return;
+      }
+      
+      // Traducir el tipo de mensaje para el prompt
+      const messageTypeMap: Record<string, string> = {
+        appointment_reminder: "recordatorio de cita",
+        follow_up: "seguimiento de terapia",
+        welcome: "bienvenida a nuevos pacientes",
+        cancellation: "cancelación de cita",
+        rescheduling: "reprogramación de cita",
+        custom: "personalizado"
+      };
+      
+      const params: MessageGenerationParams = {
+        recipientName: "[nombre_paciente]",
+        messageType: messageTypeMap[messageType] || messageType,
+        psychologistName: user?.full_name || "[nombre_doctor]",
+        customInstructions: "Incluye marcadores como [nombre_paciente], [nombre_doctor], [fecha_cita], [hora_cita] donde sea apropiado."
+      };
+      
+      const content = await generateMessage(params);
+      templateForm.setValue("content", content);
+      
+      // Una vez que tenemos el contenido, podemos sugerir un título
+      if (!templateForm.getValues("title")) {
+        handleSuggestTitle(content);
+      }
+      
+      toast({
+        title: "¡Generado con éxito!",
+        description: "Contenido generado con IA. Puedes editarlo según tus necesidades.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo generar el contenido. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingWithAI(false);
+    }
+  };
+  
+  // Sugerir título para una plantilla basado en su contenido
+  const handleSuggestTitle = async (content?: string) => {
+    try {
+      setIsSuggestingTitle(true);
+      const contentToUse = content || templateForm.getValues("content");
+      
+      if (!contentToUse || contentToUse.length < 10) {
+        toast({
+          title: "Error",
+          description: "El contenido es demasiado corto para sugerir un título",
+          variant: "destructive",
+        });
+        setIsSuggestingTitle(false);
+        return;
+      }
+      
+      const title = await suggestTitle(contentToUse);
+      templateForm.setValue("title", title);
+      
+      toast({
+        title: "Título sugerido",
+        description: "Se ha generado un título basado en el contenido.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo generar un título. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSuggestingTitle(false);
+    }
+  };
+  
+  // Mejorar un mensaje existente
+  const handleImproveMessage = async () => {
+    try {
+      setIsImprovingMessage(true);
+      const message = messageForm.getValues("message");
+      
+      if (!message || message.length < 10) {
+        toast({
+          title: "Error",
+          description: "El mensaje es demasiado corto para mejorar",
+          variant: "destructive",
+        });
+        setIsImprovingMessage(false);
+        return;
+      }
+      
+      const instructions = "Mejora este mensaje para que sea más profesional, empático y claro. Mantén los marcadores existentes.";
+      const improvedMessage = await improveMessage(message, instructions);
+      messageForm.setValue("message", improvedMessage);
+      
+      toast({
+        title: "Mensaje mejorado",
+        description: "Su mensaje ha sido mejorado con IA.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo mejorar el mensaje. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImprovingMessage(false);
+    }
   };
 
   // Submit template form
@@ -315,14 +450,42 @@ const Messages = () => {
                   name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contenido</FormLabel>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Contenido</FormLabel>
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleSuggestTitle()}
+                            disabled={isSuggestingTitle}
+                          >
+                            <Sparkles className="h-4 w-4 mr-1" />
+                            {isSuggestingTitle ? "Generando..." : "Sugerir título"}
+                          </Button>
+                          
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={handleGenerateWithAI}
+                            disabled={isGeneratingWithAI}
+                          >
+                            <Wand2 className="h-4 w-4 mr-1" />
+                            {isGeneratingWithAI ? "Generando..." : "Generar con IA"}
+                          </Button>
+                        </div>
+                      </div>
                       <FormControl>
                         <Textarea 
-                          placeholder="Escribe el contenido de tu plantilla. Puedes usar [nombre_paciente], [nombre_doctor], [fecha_cita], [hora_cita] como marcadores."
+                          placeholder="Escribe el contenido de tu plantilla. Puedes usar [nombre_paciente], [nombre_doctor], [fecha_cita], [hora_cita] como marcadores o generar contenido automáticamente con IA."
                           className="min-h-40 font-mono text-sm"
                           {...field}
                         />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Usa la IA para generar contenido profesional y empático automáticamente.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -452,14 +615,29 @@ const Messages = () => {
                   name="message"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mensaje</FormLabel>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Mensaje</FormLabel>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={handleImproveMessage}
+                          disabled={isImprovingMessage || !field.value || field.value.length < 10}
+                        >
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          {isImprovingMessage ? "Mejorando..." : "Mejorar mensaje con IA"}
+                        </Button>
+                      </div>
                       <FormControl>
                         <Textarea 
-                          placeholder="Escribe tu mensaje"
+                          placeholder="Escribe tu mensaje o selecciona una plantilla"
                           className="min-h-40"
                           {...field}
                         />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Usa el botón "Mejorar mensaje con IA" para perfeccionar automáticamente el tono y la claridad.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
