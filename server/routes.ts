@@ -14,6 +14,12 @@ import {
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth } from "./auth";
+import { 
+  generatePersonalizedMessage, 
+  improveMessage, 
+  suggestMessageTemplateTitle,
+  type MessageGenerationParams 
+} from "./services/openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -282,6 +288,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ message: "Contact request submitted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Error submitting contact request" });
+    }
+  });
+
+  // OpenAI integration routes
+  app.post("/api/ai/generate-message", isAuthenticated, async (req, res) => {
+    try {
+      const params: MessageGenerationParams = req.body;
+      // Obtener el nombre del psicólogo si no se proporciona
+      if (!params.psychologistName && req.user) {
+        params.psychologistName = (req.user as any).full_name;
+      }
+      
+      const message = await generatePersonalizedMessage(params);
+      res.json({ message });
+    } catch (error) {
+      console.error("Error en generación de mensaje:", error);
+      res.status(500).json({ message: "Error al generar el mensaje personalizado" });
+    }
+  });
+
+  app.post("/api/ai/improve-message", isAuthenticated, async (req, res) => {
+    try {
+      const { message, instructions } = req.body;
+      if (!message || !instructions) {
+        return res.status(400).json({ message: "Se requiere un mensaje e instrucciones" });
+      }
+      
+      const improvedMessage = await improveMessage(message, instructions);
+      res.json({ message: improvedMessage });
+    } catch (error) {
+      console.error("Error al mejorar mensaje:", error);
+      res.status(500).json({ message: "Error al mejorar el mensaje" });
+    }
+  });
+
+  app.post("/api/ai/suggest-title", isAuthenticated, async (req, res) => {
+    try {
+      const { content } = req.body;
+      if (!content) {
+        return res.status(400).json({ message: "Se requiere el contenido del mensaje" });
+      }
+      
+      const title = await suggestMessageTemplateTitle(content);
+      res.json({ title });
+    } catch (error) {
+      console.error("Error al sugerir título:", error);
+      res.status(500).json({ message: "Error al sugerir un título para la plantilla" });
     }
   });
 
