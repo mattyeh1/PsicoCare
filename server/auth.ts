@@ -37,8 +37,10 @@ export function setupAuth(app: Express) {
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 días
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production" ? true : false
-    }
+      secure: process.env.NODE_ENV === "production" ? true : false,
+      sameSite: 'lax'
+    },
+    rolling: true // Renovar la cookie en cada respuesta
   };
 
   app.set("trust proxy", 1);

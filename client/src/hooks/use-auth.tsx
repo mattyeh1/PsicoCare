@@ -33,6 +33,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<any, Error, LoginData>;
   logoutMutation: UseMutationResult<any, Error, void>;
   registerMutation: UseMutationResult<any, Error, RegisterData>;
+  refetchUser?: () => Promise<any>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -43,11 +44,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: user,
     error,
     isLoading,
+    refetch: refetchUser
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
-    initialData: null
+    initialData: null,
+    staleTime: 5 * 60 * 1000, // 5 minutos antes de considerar los datos obsoletos
+    refetchInterval: 4 * 60 * 1000, // Refrescar cada 4 minutos
+    refetchIntervalInBackground: true,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   const loginMutation = useMutation({
