@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, index, varchar, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,25 +11,52 @@ export const messageTypeEnum = pgEnum('message_type', ['appointment_reminder', '
 // Users table (psychologists)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email").notNull().unique(),
-  full_name: text("full_name").notNull(),
-  specialty: text("specialty").notNull(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  email: varchar("email", { length: 100 }).notNull().unique(),
+  full_name: varchar("full_name", { length: 100 }).notNull(),
+  specialty: varchar("specialty", { length: 100 }).notNull(),
   bio: text("bio"),
   education: text("education"),
   certifications: text("certifications"),
-  profile_image: text("profile_image"),
+  profile_image: varchar("profile_image", { length: 255 }),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  // Nuevos campos para escalabilidad
+  account_status: varchar("account_status", { length: 20 }).default("active").notNull(),
+  last_login: timestamp("last_login"),
+  timezone: varchar("timezone", { length: 50 }).default("UTC").notNull(),
+  language_preference: varchar("language_preference", { length: 10 }).default("es").notNull(),
+}, (table) => {
+  return {
+    emailIdx: index("users_email_idx").on(table.email),
+    usernameIdx: index("users_username_idx").on(table.username),
+    fullNameIdx: index("users_full_name_idx").on(table.full_name),
+    specialtyIdx: index("users_specialty_idx").on(table.specialty),
+  };
 });
 
 // Patients table
 export const patients = pgTable("patients", {
   id: serial("id").primaryKey(),
   psychologist_id: integer("psychologist_id").references(() => users.id).notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone"),
+  name: varchar("name", { length: 100 }).notNull(),
+  email: varchar("email", { length: 100 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
   notes: text("notes"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  // Nuevos campos para gestión de pacientes a escala
+  date_of_birth: date("date_of_birth"),
+  address: varchar("address", { length: 255 }),
+  emergency_contact: varchar("emergency_contact", { length: 100 }),
+  status: varchar("status", { length: 20 }).default("active").notNull(),
+}, (table) => {
+  return {
+    psychologistIdIdx: index("patients_psychologist_id_idx").on(table.psychologist_id),
+    emailIdx: index("patients_email_idx").on(table.email),
+    nameIdx: index("patients_name_idx").on(table.name),
+  };
 });
 
 // Appointments table
@@ -41,6 +68,20 @@ export const appointments = pgTable("appointments", {
   duration: integer("duration").notNull(), // in minutes
   status: appointmentStatusEnum("status").notNull().default('scheduled'),
   notes: text("notes"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  // Nuevos campos para escalabilidad de citas
+  video_url: varchar("video_url", { length: 255 }),
+  reminder_sent: boolean("reminder_sent").default(false),
+  payment_status: varchar("payment_status", { length: 20 }).default("pending").notNull(),
+  meeting_type: varchar("meeting_type", { length: 20 }).default("video").notNull(),
+}, (table) => {
+  return {
+    psychologistIdIdx: index("appointments_psychologist_id_idx").on(table.psychologist_id),
+    patientIdIdx: index("appointments_patient_id_idx").on(table.patient_id),
+    dateIdx: index("appointments_date_idx").on(table.date),
+    statusIdx: index("appointments_status_idx").on(table.status),
+  };
 });
 
 // Availability table
@@ -48,8 +89,17 @@ export const availability = pgTable("availability", {
   id: serial("id").primaryKey(),
   psychologist_id: integer("psychologist_id").references(() => users.id).notNull(),
   day_of_week: integer("day_of_week").notNull(), // 0-6 for Sunday-Saturday
-  start_time: text("start_time").notNull(), // format: 'HH:MM'
-  end_time: text("end_time").notNull(), // format: 'HH:MM'
+  start_time: varchar("start_time", { length: 5 }).notNull(), // format: 'HH:MM'
+  end_time: varchar("end_time", { length: 5 }).notNull(), // format: 'HH:MM'
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  is_recurring: boolean("is_recurring").default(true).notNull(),
+  recurrence_end_date: date("recurrence_end_date"),
+  is_available: boolean("is_available").default(true).notNull(),
+}, (table) => {
+  return {
+    psychologistIdIdx: index("availability_psychologist_id_idx").on(table.psychologist_id),
+    dayOfWeekIdx: index("availability_day_of_week_idx").on(table.day_of_week),
+  };
 });
 
 // Message templates table
@@ -57,16 +107,34 @@ export const message_templates = pgTable("message_templates", {
   id: serial("id").primaryKey(),
   psychologist_id: integer("psychologist_id").references(() => users.id).notNull(),
   type: messageTypeEnum("type").notNull(),
-  title: text("title").notNull(),
+  title: varchar("title", { length: 100 }).notNull(),
   content: text("content").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  is_default: boolean("is_default").default(false).notNull(),
+  language: varchar("language", { length: 10 }).default("es").notNull(),
+}, (table) => {
+  return {
+    psychologistIdIdx: index("message_templates_psychologist_id_idx").on(table.psychologist_id),
+    typeIdx: index("message_templates_type_idx").on(table.type),
+  };
 });
 
 // Consent forms table
 export const consent_forms = pgTable("consent_forms", {
   id: serial("id").primaryKey(),
   psychologist_id: integer("psychologist_id").references(() => users.id).notNull(),
-  title: text("title").notNull(),
+  title: varchar("title", { length: 100 }).notNull(),
   content: text("content").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  version: varchar("version", { length: 10 }).default("1.0").notNull(),
+  is_active: boolean("is_active").default(true).notNull(),
+  language: varchar("language", { length: 10 }).default("es").notNull(),
+}, (table) => {
+  return {
+    psychologistIdIdx: index("consent_forms_psychologist_id_idx").on(table.psychologist_id),
+  };
 });
 
 // Patient consent forms
@@ -76,27 +144,111 @@ export const patient_consents = pgTable("patient_consents", {
   consent_form_id: integer("consent_form_id").references(() => consent_forms.id).notNull(),
   signed_at: timestamp("signed_at").notNull(),
   signature: text("signature").notNull(),
+  ip_address: varchar("ip_address", { length: 45 }),
+  form_version: varchar("form_version", { length: 10 }).notNull(),
+  is_valid: boolean("is_valid").default(true).notNull(),
+  expires_at: timestamp("expires_at"),
+}, (table) => {
+  return {
+    patientIdIdx: index("patient_consents_patient_id_idx").on(table.patient_id),
+    consentFormIdIdx: index("patient_consents_consent_form_id_idx").on(table.consent_form_id),
+    signedAtIdx: index("patient_consents_signed_at_idx").on(table.signed_at),
+  };
 });
 
 // Contact requests table
 export const contact_requests = pgTable("contact_requests", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  specialty: text("specialty").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  email: varchar("email", { length: 100 }).notNull(),
+  specialty: varchar("specialty", { length: 100 }).notNull(),
   message: text("message"),
   created_at: timestamp("created_at").defaultNow().notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+  assigned_to: integer("assigned_to").references(() => users.id),
+  phone: varchar("phone", { length: 20 }),
+  source: varchar("source", { length: 50 }),
+}, (table) => {
+  return {
+    emailIdx: index("contact_requests_email_idx").on(table.email),
+    statusIdx: index("contact_requests_status_idx").on(table.status),
+    createdAtIdx: index("contact_requests_created_at_idx").on(table.created_at),
+  };
 });
 
 // Create insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertPatientSchema = createInsertSchema(patients).omit({ id: true });
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
-export const insertAvailabilitySchema = createInsertSchema(availability).omit({ id: true });
-export const insertMessageTemplateSchema = createInsertSchema(message_templates).omit({ id: true });
-export const insertConsentFormSchema = createInsertSchema(consent_forms).omit({ id: true });
-export const insertPatientConsentSchema = createInsertSchema(patient_consents).omit({ id: true });
-export const insertContactRequestSchema = createInsertSchema(contact_requests).omit({ id: true, created_at: true });
+export const insertUserSchema = createInsertSchema(users).omit({ 
+  id: true, 
+  created_at: true, 
+  updated_at: true, 
+  last_login: true, 
+  account_status: true,
+  timezone: true,
+  language_preference: true
+});
+
+export const insertPatientSchema = createInsertSchema(patients).omit({ 
+  id: true, 
+  created_at: true, 
+  updated_at: true,
+  date_of_birth: true,
+  address: true,
+  emergency_contact: true,
+  status: true
+});
+
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({ 
+  id: true, 
+  created_at: true, 
+  updated_at: true,
+  video_url: true,
+  reminder_sent: true,
+  payment_status: true,
+  meeting_type: true
+});
+
+export const insertAvailabilitySchema = createInsertSchema(availability).omit({ 
+  id: true, 
+  created_at: true,
+  is_recurring: true,
+  recurrence_end_date: true,
+  is_available: true
+});
+
+export const insertMessageTemplateSchema = createInsertSchema(message_templates).omit({ 
+  id: true, 
+  created_at: true, 
+  updated_at: true,
+  is_default: true,
+  language: true
+});
+
+export const insertConsentFormSchema = createInsertSchema(consent_forms).omit({ 
+  id: true, 
+  created_at: true, 
+  updated_at: true,
+  version: true,
+  is_active: true,
+  language: true
+});
+
+export const insertPatientConsentSchema = createInsertSchema(patient_consents).omit({ 
+  id: true,
+  ip_address: true,
+  is_valid: true,
+  expires_at: true
+}).extend({
+  form_version: z.string().default("1.0")
+});
+
+export const insertContactRequestSchema = createInsertSchema(contact_requests).omit({ 
+  id: true, 
+  created_at: true,
+  status: true,
+  assigned_to: true,
+  phone: true,
+  source: true
+});
 
 // Export types
 export type User = typeof users.$inferSelect;

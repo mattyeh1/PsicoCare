@@ -367,74 +367,263 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Cache para mejorar el rendimiento
+  private userCache = new Map<number, User & { cacheTime: number }>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos en milisegundos
+
   async getUser(id: number): Promise<User | undefined> {
+    // Verificar si el usuario está en caché y si la caché sigue siendo válida
+    const cachedUser = this.userCache.get(id);
+    const now = Date.now();
+    
+    if (cachedUser && (now - cachedUser.cacheTime < this.CACHE_TTL)) {
+      // Usar caché si es válida
+      const { cacheTime, ...user } = cachedUser;
+      return user;
+    }
+    
+    // Si no está en caché o expiró, consulta la base de datos
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    
+    if (user) {
+      // Guardar en caché
+      this.userCache.set(id, { ...user, cacheTime: now });
+    }
+    
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    
+    if (user) {
+      // Actualizar caché si se encuentra el usuario
+      this.userCache.set(user.id, { ...user, cacheTime: Date.now() });
+    }
+    
     return user;
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [newUser] = await db.insert(users).values(user).returning();
+    // Asegúrate de que los valores predeterminados estén establecidos
+    const userWithDefaults = {
+      ...user,
+      created_at: new Date(),
+      updated_at: new Date(),
+      account_status: "active",
+      timezone: "UTC",
+      language_preference: "es"
+    };
+    
+    const [newUser] = await db.insert(users).values(userWithDefaults).returning();
+    
+    // Actualizar caché
+    this.userCache.set(newUser.id, { ...newUser, cacheTime: Date.now() });
+    
     return newUser;
   }
 
   async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    // Asegúrate de actualizar la marca de tiempo
+    const updateData = {
+      ...userData,
+      updated_at: new Date()
+    };
+    
     const [updatedUser] = await db.update(users)
-      .set(userData)
+      .set(updateData)
       .where(eq(users.id, id))
       .returning();
+    
+    // Actualizar caché
+    if (updatedUser) {
+      this.userCache.set(updatedUser.id, { ...updatedUser, cacheTime: Date.now() });
+    }
+    
     return updatedUser;
+  }
+  
+  // Método para registrar el inicio de sesión
+  async recordUserLogin(id: number): Promise<void> {
+    await db.update(users)
+      .set({ last_login: new Date() })
+      .where(eq(users.id, id));
+      
+    // Invalidar caché para este usuario
+    this.userCache.delete(id);
   }
 
   async getPatient(id: number): Promise<Patient | undefined> {
+    // Verificar caché
+    const cached = this.patientCache.get(id);
+    if (cached && (Date.now() - cached.timestamp < this.PATIENT_CACHE_TTL)) {
+      return cached.data;
+    }
+    
     const [patient] = await db.select().from(patients).where(eq(patients.id, id));
+    
+    if (patient) {
+      this.patientCache.set(id, {
+        data: patient,
+        timestamp: Date.now()
+      });
+    }
+    
     return patient;
   }
 
   async getPatientsForPsychologist(psychologistId: number): Promise<Patient[]> {
-    return db.select()
+    // Usar índices para optimizar la búsqueda
+    const results = await db.select()
       .from(patients)
-      .where(eq(patients.psychologist_id, psychologistId));
+      .where(eq(patients.psychologist_id, psychologistId))
+      .orderBy(patients.name);
+      
+    // Actualizar caché para cada paciente
+    results.forEach(patient => {
+      this.patientCache.set(patient.id, {
+        data: patient,
+        timestamp: Date.now()
+      });
+    });
+    
+    return results;
   }
 
+  // Las declaraciones de caché ya están arriba, eliminamos la duplicación
+
   async createPatient(patient: InsertPatient): Promise<Patient> {
-    const [newPatient] = await db.insert(patients).values(patient).returning();
+    // Añadir campos predeterminados para el nuevo esquema
+    const patientWithDefaults = {
+      ...patient,
+      created_at: new Date(),
+      updated_at: new Date(),
+      date_of_birth: null,
+      address: null,
+      emergency_contact: null,
+      status: "active"
+    };
+    
+    const [newPatient] = await db.insert(patients).values(patientWithDefaults).returning();
+    
+    // Actualizar caché
+    this.patientCache.set(newPatient.id, { 
+      data: newPatient, 
+      timestamp: Date.now() 
+    });
+    
     return newPatient;
   }
 
   async updatePatient(id: number, patientData: Partial<InsertPatient>): Promise<Patient> {
+    // Siempre actualizar la marca de tiempo
+    const updateData = {
+      ...patientData,
+      updated_at: new Date()
+    };
+    
     const [updatedPatient] = await db.update(patients)
-      .set(patientData)
+      .set(updateData)
       .where(eq(patients.id, id))
       .returning();
+    
+    // Actualizar caché
+    if (updatedPatient) {
+      this.patientCache.set(updatedPatient.id, { 
+        data: updatedPatient, 
+        timestamp: Date.now() 
+      });
+    }
+    
     return updatedPatient;
   }
 
+  // Optimización para manejo de citas
+  private appointmentCache = new Map<number, { data: Appointment, timestamp: number }>();
+  private readonly APPOINTMENT_CACHE_TTL = 2 * 60 * 1000; // 2 minutos en ms
+
   async getAppointment(id: number): Promise<Appointment | undefined> {
+    // Verificar caché
+    const cached = this.appointmentCache.get(id);
+    if (cached && (Date.now() - cached.timestamp < this.APPOINTMENT_CACHE_TTL)) {
+      return cached.data;
+    }
+    
     const [appointment] = await db.select().from(appointments).where(eq(appointments.id, id));
+    
+    if (appointment) {
+      this.appointmentCache.set(id, {
+        data: appointment,
+        timestamp: Date.now()
+      });
+    }
+    
     return appointment;
   }
 
   async getAppointmentsForPsychologist(psychologistId: number): Promise<Appointment[]> {
-    return db.select()
+    // Para citas, usamos índices para optimizar la búsqueda por psicólogo y fecha
+    const results = await db.select()
       .from(appointments)
-      .where(eq(appointments.psychologist_id, psychologistId));
+      .where(eq(appointments.psychologist_id, psychologistId))
+      .orderBy(appointments.date);
+      
+    // Actualizar caché para cada cita
+    results.forEach(appointment => {
+      this.appointmentCache.set(appointment.id, {
+        data: appointment,
+        timestamp: Date.now()
+      });
+    });
+    
+    return results;
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
-    const [newAppointment] = await db.insert(appointments).values(appointment).returning();
+    // Añadir campos predeterminados para el nuevo esquema
+    const appointmentWithDefaults = {
+      ...appointment,
+      created_at: new Date(),
+      updated_at: new Date(),
+      video_url: null,
+      reminder_sent: false,
+      payment_status: "pending",
+      meeting_type: "video"
+    };
+    
+    const [newAppointment] = await db.insert(appointments)
+      .values(appointmentWithDefaults)
+      .returning();
+    
+    // Actualizar caché
+    this.appointmentCache.set(newAppointment.id, {
+      data: newAppointment,
+      timestamp: Date.now()
+    });
+    
     return newAppointment;
   }
 
   async updateAppointment(id: number, appointmentData: Partial<InsertAppointment>): Promise<Appointment> {
+    // Siempre actualizar la marca de tiempo
+    const updateData = {
+      ...appointmentData,
+      updated_at: new Date()
+    };
+    
     const [updatedAppointment] = await db.update(appointments)
-      .set(appointmentData)
+      .set(updateData)
       .where(eq(appointments.id, id))
       .returning();
+    
+    // Actualizar caché y notificar cambios
+    if (updatedAppointment) {
+      this.appointmentCache.set(updatedAppointment.id, {
+        data: updatedAppointment,
+        timestamp: Date.now()
+      });
+    }
+    
     return updatedAppointment;
   }
 
