@@ -361,10 +361,14 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
+    const PostgresStore = new PostgresSessionStore({ 
       pool,
+      tableName: 'session',
       createTableIfMissing: true 
     });
+    
+    // Asegurarse de que la tabla de sesiones se crea
+    this.sessionStore = PostgresStore;
   }
 
   // Cache para mejorar el rendimiento
