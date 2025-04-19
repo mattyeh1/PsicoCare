@@ -48,13 +48,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    retry: false,
+    retry: 1, // Permitir un reintento en caso de error de red
+    retryDelay: 1000, // Esperar 1 segundo antes de reintentar
     initialData: null,
-    staleTime: 5 * 60 * 1000, // 5 minutos antes de considerar los datos obsoletos
-    refetchInterval: 4 * 60 * 1000, // Refrescar cada 4 minutos
+    staleTime: 2 * 60 * 1000, // 2 minutos antes de considerar los datos obsoletos (reducido)
+    refetchInterval: 2 * 60 * 1000, // Refrescar cada 2 minutos (más frecuente)
     refetchIntervalInBackground: true,
     refetchOnMount: true,
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true, // Importante: recargar al reconectar
   });
 
   const loginMutation = useMutation({
@@ -145,20 +147,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(data.error || "Error al cerrar sesión");
         }
       } catch (error) {
+        // Incluso si hay error, intentamos limpiar la caché del cliente
+        console.error("Error durante el proceso de logout:", error);
         throw error;
+      } finally {
+        // Limpiar la caché del cliente independientemente del resultado
+        localStorage.removeItem("lastKnownUser");
+        sessionStorage.removeItem("userSession");
       }
     },
     onSuccess: () => {
+      // Limpiar todos los datos relevantes de la caché
       queryClient.setQueryData(["/api/user"], null);
+      
+      // Invalidar todas las consultas que requieren autenticación
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const queryKey = Array.isArray(query.queryKey) ? query.queryKey[0] : query.queryKey;
+          return typeof queryKey === 'string' && queryKey.startsWith('/api/');
+        },
+      });
+      
+      // Mostrar notificación
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente.",
       });
     },
     onError: (error: Error) => {
+      // A pesar del error, intentamos limpiar la caché
+      queryClient.setQueryData(["/api/user"], null);
+      
       toast({
         title: "Error al cerrar sesión",
-        description: error.message || "Hubo un problema al cerrar la sesión.",
+        description: "Se ha cerrado la sesión pero hubo un problema con el servidor.",
         variant: "destructive",
       });
     },

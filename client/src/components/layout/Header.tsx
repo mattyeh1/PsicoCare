@@ -15,12 +15,33 @@ import {
   FileText, 
   LogOut 
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Header = () => {
   const [location] = useLocation();
-  const { user, isAuthenticated, logoutMutation } = useAuth();
+  const { user, isAuthenticated, logoutMutation, refetchUser } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Efecto para verificar el estado de autenticación cada vez que se muestra el Header
+  // Esto ayuda a mantener la sesión actualizada y prevenir deslogueos inesperados
+  useEffect(() => {
+    const checkAuthentication = () => {
+      if (refetchUser) {
+        refetchUser().catch(err => {
+          console.error("Error al refrescar datos de usuario en Header:", err);
+        });
+      }
+    };
+    
+    // Verificar autenticación al montar el componente
+    checkAuthentication();
+    
+    // Configurar verificación periódica
+    const intervalId = setInterval(checkAuthentication, 60000); // Cada minuto
+    
+    // Limpiar intervalo al desmontar
+    return () => clearInterval(intervalId);
+  }, [refetchUser]);
 
   const handleLogout = () => {
     logoutMutation.mutate();
