@@ -13,62 +13,11 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import session from "express-session";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import MemoryStore from "memorystore";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session store
-  const MemoryStoreSession = MemoryStore(session);
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "psiconnect-secret",
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 },
-      store: new MemoryStoreSession({
-        checkPeriod: 86400000, // prune expired entries every 24h
-      }),
-    })
-  );
-
-  // Setup passport
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user) {
-          return done(null, false, { message: "Invalid username or password" });
-        }
-        
-        // In a real app, you would hash and compare passwords
-        if (user.password !== password) {
-          return done(null, false, { message: "Invalid username or password" });
-        }
-        
-        return done(null, user);
-      } catch (error) {
-        return done(error);
-      }
-    })
-  );
-
-  passport.serializeUser((user: any, done) => {
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await storage.getUser(id);
-      done(null, user);
-    } catch (error) {
-      done(error);
-    }
-  });
+  // Setup authentication
+  setupAuth(app);
 
   // Authentication middleware
   const isAuthenticated = (req: Request, res: Response, next: any) => {
@@ -94,55 +43,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     };
   };
-
-  // Authentication routes
-  app.post("/api/auth/login", passport.authenticate("local"), (req, res) => {
-    const user = req.user as any;
-    res.json({ message: "Login successful", user: { id: user.id, username: user.username, email: user.email, full_name: user.full_name } });
-  });
-
-  app.post("/api/auth/register", validateRequest(insertUserSchema), async (req, res) => {
-    try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-      
-      const user = await storage.createUser(req.body);
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).json({ message: "Error during login after registration" });
-        }
-        return res.json({ message: "Registration successful", user: { id: user.id, username: user.username, email: user.email, full_name: user.full_name } });
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Error during registration" });
-    }
-  });
-
-  app.get("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      res.json({ message: "Logout successful" });
-    });
-  });
-
-  app.get("/api/auth/me", (req, res) => {
-    if (req.isAuthenticated()) {
-      const user = req.user as any;
-      return res.json({ 
-        id: user.id, 
-        username: user.username, 
-        email: user.email, 
-        full_name: user.full_name,
-        specialty: user.specialty,
-        bio: user.bio,
-        education: user.education,
-        certifications: user.certifications,
-        profile_image: user.profile_image
-      });
-    }
-    res.status(401).json({ message: "Not authenticated" });
-  });
 
   // User routes
   app.get("/api/users/:id", isAuthenticated, async (req, res) => {
