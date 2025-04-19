@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/providers/AuthProvider";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,8 +19,12 @@ import { useState } from "react";
 
 const Header = () => {
   const [location] = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { user, isAuthenticated, logoutMutation } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <header className="bg-white shadow-sm">
@@ -28,7 +32,7 @@ const Header = () => {
         <div className="flex justify-between items-center py-4 md:justify-start md:space-x-10">
           <div className="flex justify-start lg:w-0 lg:flex-1">
             <Link href="/" className="flex items-center">
-              <span className="text-primary-500 text-2xl font-serif font-semibold">PsiConnect</span>
+              <span className="text-primary text-2xl font-serif font-semibold">PsiConnect</span>
             </Link>
           </div>
           
@@ -36,7 +40,7 @@ const Header = () => {
           <div className="-mr-2 -my-2 md:hidden">
             <Button
               variant="ghost"
-              className="p-2 inline-flex items-center justify-center text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+              className="p-2 inline-flex items-center justify-center text-neutral-800 hover:text-primary hover:bg-neutral-50"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}
             >
@@ -47,13 +51,13 @@ const Header = () => {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-10">
-            <Link href="/#features" className="text-base font-medium text-neutral-800 hover:text-primary-500 transition-colors">
+            <Link href="/#features" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
               Funcionalidades
             </Link>
-            <Link href="/#benefits" className="text-base font-medium text-neutral-800 hover:text-primary-500 transition-colors">
+            <Link href="/#benefits" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
               Beneficios
             </Link>
-            <Link href="/#contact" className="text-base font-medium text-neutral-800 hover:text-primary-500 transition-colors">
+            <Link href="/#contact" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
               Contacto
             </Link>
           </nav>
@@ -98,7 +102,7 @@ const Header = () => {
                       <span>Consentimientos</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-red-500">
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-red-500">
                     <LogOut className="h-4 w-4" />
                     <span>Cerrar sesión</span>
                   </DropdownMenuItem>
@@ -106,10 +110,10 @@ const Header = () => {
               </DropdownMenu>
             ) : (
               <>
-                <Link href="/login" className="whitespace-nowrap text-base font-medium text-neutral-800 hover:text-primary-500 transition-colors">
+                <Link href="/login" className="whitespace-nowrap text-base font-medium text-neutral-800 hover:text-primary transition-colors">
                   Iniciar sesión
                 </Link>
-                <Link href="/register" className="ml-8 whitespace-nowrap inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-500 hover:bg-primary-600 transition-colors">
+                <Link href="/register" className="ml-8 whitespace-nowrap inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary hover:bg-primary/90 transition-colors">
                   Registrarse
                 </Link>
               </>
@@ -124,21 +128,21 @@ const Header = () => {
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link 
               href="/#features" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
               onClick={() => setMobileMenuOpen(false)}
             >
               Funcionalidades
             </Link>
             <Link 
               href="/#benefits" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
               onClick={() => setMobileMenuOpen(false)}
             >
               Beneficios
             </Link>
             <Link 
               href="/#contact" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
               onClick={() => setMobileMenuOpen(false)}
             >
               Contacto
@@ -148,42 +152,42 @@ const Header = () => {
               <>
                 <Link 
                   href="/dashboard" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Dashboard
                 </Link>
                 <Link 
                   href="/profile" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Perfil
                 </Link>
                 <Link 
                   href="/appointments" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Citas
                 </Link>
                 <Link 
                   href="/messages" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Mensajes
                 </Link>
                 <Link 
                   href="/consent-forms" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Consentimientos
                 </Link>
                 <button 
                   onClick={() => {
-                    logout();
+                    handleLogout();
                     setMobileMenuOpen(false);
                   }}
                   className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-neutral-50"
@@ -195,14 +199,14 @@ const Header = () => {
               <>
                 <Link 
                   href="/login" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary-500 hover:bg-neutral-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Iniciar sesión
                 </Link>
                 <Link 
                   href="/register" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-primary-500 hover:bg-primary-600 mt-2"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-primary hover:bg-primary/90 mt-2"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Registrarse

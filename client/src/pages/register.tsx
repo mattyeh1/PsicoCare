@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -20,9 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/providers/AuthProvider";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import { SelectItem } from "@/components/ui/select-item";
 import { Link } from "wouter";
 
@@ -50,9 +47,8 @@ const formSchema = z.object({
 
 const Register = () => {
   const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { registerMutation } = useAuth();
+  const isLoading = registerMutation.isPending;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,27 +66,11 @@ const Register = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
-    try {
-      const res = await apiRequest("POST", "/api/auth/register", values);
-      const data = await res.json();
-      login(data.user);
-      toast({
-        title: "Registro exitoso",
-        description: "Bienvenido/a a PsiConnect",
-        variant: "default",
-      });
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Registration error:", error);
-      toast({
-        title: "Error de registro",
-        description: "Hubo un problema al crear tu cuenta. Inténtalo de nuevo.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    registerMutation.mutate(values, {
+      onSuccess: () => {
+        navigate("/dashboard");
+      }
+    });
   };
 
   return (

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -13,9 +12,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/providers/AuthProvider";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 
 const formSchema = z.object({
@@ -29,9 +26,8 @@ const formSchema = z.object({
 
 const Login = () => {
   const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { loginMutation } = useAuth();
+  const isLoading = loginMutation.isPending;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,27 +38,11 @@ const Login = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
-    try {
-      const res = await apiRequest("POST", "/api/auth/login", values);
-      const data = await res.json();
-      login(data.user);
-      toast({
-        title: "Inicio de sesión exitoso",
-        description: "Bienvenido/a a PsiConnect",
-        variant: "default",
-      });
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        title: "Error de inicio de sesión",
-        description: "Credenciales incorrectas. Inténtalo de nuevo.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    loginMutation.mutate(values, {
+      onSuccess: () => {
+        navigate("/dashboard");
+      }
+    });
   };
 
   return (
