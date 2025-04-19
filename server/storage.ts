@@ -8,8 +8,17 @@ import {
   patient_consents, PatientConsent, InsertPatientConsent,
   contact_requests, ContactRequest, InsertContactRequest
 } from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 export interface IStorage {
+  // Session store
+  sessionStore: session.Store;
+  
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -53,7 +62,11 @@ export interface IStorage {
   createContactRequest(request: InsertContactRequest): Promise<ContactRequest>;
 }
 
+const MemoryStore = createMemoryStore(session);
+
 export class MemStorage implements IStorage {
+  sessionStore: session.Store;
+  
   private users: Map<number, User>;
   private patients: Map<number, Patient>;
   private appointments: Map<number, Appointment>;
@@ -73,6 +86,10 @@ export class MemStorage implements IStorage {
   private contactRequestIdCounter: number;
 
   constructor() {
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    });
+    
     this.users = new Map();
     this.patients = new Map();
     this.appointments = new Map();
@@ -153,7 +170,14 @@ export class MemStorage implements IStorage {
 
   async createUser(user: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
-    const newUser: User = { ...user, id };
+    const newUser: User = { 
+      ...user, 
+      id,
+      bio: user.bio || null,
+      education: user.education || null,
+      certifications: user.certifications || null,
+      profile_image: user.profile_image || null
+    };
     this.users.set(id, newUser);
     return newUser;
   }
@@ -182,7 +206,12 @@ export class MemStorage implements IStorage {
 
   async createPatient(patient: InsertPatient): Promise<Patient> {
     const id = this.patientIdCounter++;
-    const newPatient: Patient = { ...patient, id };
+    const newPatient: Patient = { 
+      ...patient, 
+      id,
+      phone: patient.phone || null,
+      notes: patient.notes || null
+    };
     this.patients.set(id, newPatient);
     return newPatient;
   }
@@ -211,7 +240,12 @@ export class MemStorage implements IStorage {
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     const id = this.appointmentIdCounter++;
-    const newAppointment: Appointment = { ...appointment, id };
+    const newAppointment: Appointment = { 
+      ...appointment, 
+      id,
+      status: appointment.status || "scheduled",
+      notes: appointment.notes || null
+    };
     this.appointments.set(id, newAppointment);
     return newAppointment;
   }
@@ -313,11 +347,175 @@ export class MemStorage implements IStorage {
     const newRequest: ContactRequest = { 
       ...request, 
       id, 
-      created_at: new Date() 
+      created_at: new Date(),
+      message: request.message || null
     };
     this.contactRequests.set(id, newRequest);
     return newRequest;
   }
 }
 
-export const storage = new MemStorage();
+const PostgresSessionStore = connectPg(session);
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true 
+    });
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const [updatedUser] = await db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async getPatient(id: number): Promise<Patient | undefined> {
+    const [patient] = await db.select().from(patients).where(eq(patients.id, id));
+    return patient;
+  }
+
+  async getPatientsForPsychologist(psychologistId: number): Promise<Patient[]> {
+    return db.select()
+      .from(patients)
+      .where(eq(patients.psychologist_id, psychologistId));
+  }
+
+  async createPatient(patient: InsertPatient): Promise<Patient> {
+    const [newPatient] = await db.insert(patients).values(patient).returning();
+    return newPatient;
+  }
+
+  async updatePatient(id: number, patientData: Partial<InsertPatient>): Promise<Patient> {
+    const [updatedPatient] = await db.update(patients)
+      .set(patientData)
+      .where(eq(patients.id, id))
+      .returning();
+    return updatedPatient;
+  }
+
+  async getAppointment(id: number): Promise<Appointment | undefined> {
+    const [appointment] = await db.select().from(appointments).where(eq(appointments.id, id));
+    return appointment;
+  }
+
+  async getAppointmentsForPsychologist(psychologistId: number): Promise<Appointment[]> {
+    return db.select()
+      .from(appointments)
+      .where(eq(appointments.psychologist_id, psychologistId));
+  }
+
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const [newAppointment] = await db.insert(appointments).values(appointment).returning();
+    return newAppointment;
+  }
+
+  async updateAppointment(id: number, appointmentData: Partial<InsertAppointment>): Promise<Appointment> {
+    const [updatedAppointment] = await db.update(appointments)
+      .set(appointmentData)
+      .where(eq(appointments.id, id))
+      .returning();
+    return updatedAppointment;
+  }
+
+  async getAvailability(id: number): Promise<Availability | undefined> {
+    const [availabilitySlot] = await db.select().from(availability).where(eq(availability.id, id));
+    return availabilitySlot;
+  }
+
+  async getAvailabilityForPsychologist(psychologistId: number): Promise<Availability[]> {
+    return db.select()
+      .from(availability)
+      .where(eq(availability.psychologist_id, psychologistId));
+  }
+
+  async createAvailability(availabilityData: InsertAvailability): Promise<Availability> {
+    const [newAvailability] = await db.insert(availability).values(availabilityData).returning();
+    return newAvailability;
+  }
+
+  async deleteAvailability(id: number): Promise<void> {
+    await db.delete(availability).where(eq(availability.id, id));
+  }
+
+  async getMessageTemplate(id: number): Promise<MessageTemplate | undefined> {
+    const [template] = await db.select().from(message_templates).where(eq(message_templates.id, id));
+    return template;
+  }
+
+  async getMessageTemplatesForPsychologist(psychologistId: number): Promise<MessageTemplate[]> {
+    return db.select()
+      .from(message_templates)
+      .where(eq(message_templates.psychologist_id, psychologistId));
+  }
+
+  async createMessageTemplate(template: InsertMessageTemplate): Promise<MessageTemplate> {
+    const [newTemplate] = await db.insert(message_templates).values(template).returning();
+    return newTemplate;
+  }
+
+  async getConsentForm(id: number): Promise<ConsentForm | undefined> {
+    const [form] = await db.select().from(consent_forms).where(eq(consent_forms.id, id));
+    return form;
+  }
+
+  async getConsentFormsForPsychologist(psychologistId: number): Promise<ConsentForm[]> {
+    return db.select()
+      .from(consent_forms)
+      .where(eq(consent_forms.psychologist_id, psychologistId));
+  }
+
+  async createConsentForm(form: InsertConsentForm): Promise<ConsentForm> {
+    const [newForm] = await db.insert(consent_forms).values(form).returning();
+    return newForm;
+  }
+
+  async getPatientConsent(id: number): Promise<PatientConsent | undefined> {
+    const [consent] = await db.select().from(patient_consents).where(eq(patient_consents.id, id));
+    return consent;
+  }
+
+  async getPatientConsentsForPsychologist(psychologistId: number): Promise<PatientConsent[]> {
+    // Join with patients to filter by psychologist_id
+    const result = await db.select()
+      .from(patient_consents)
+      .innerJoin(patients, eq(patient_consents.patient_id, patients.id))
+      .where(eq(patients.psychologist_id, psychologistId));
+    
+    // Transform join result to return only patient_consents
+    return result.map(row => row.patient_consents);
+  }
+
+  async createPatientConsent(consent: InsertPatientConsent): Promise<PatientConsent> {
+    const [newConsent] = await db.insert(patient_consents).values(consent).returning();
+    return newConsent;
+  }
+
+  async createContactRequest(request: InsertContactRequest): Promise<ContactRequest> {
+    // created_at will be handled by the database default value
+    const [newRequest] = await db.insert(contact_requests).values(request).returning();
+    return newRequest;
+  }
+}
+
+export const storage = new DatabaseStorage();
