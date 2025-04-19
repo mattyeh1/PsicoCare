@@ -152,7 +152,13 @@ const Profile = () => {
   const onSubmitPatient = async (values: z.infer<typeof patientFormSchema>) => {
     setIsLoading(true);
     try {
-      const res = await apiRequest("POST", "/api/patients", values);
+      // Añadir el ID del psicólogo explícitamente
+      const patientData = {
+        ...values,
+        psychologist_id: user?.id
+      };
+      
+      const res = await apiRequest("POST", "/api/patients", patientData);
       await res.json();
       
       toast({
@@ -163,10 +169,10 @@ const Profile = () => {
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
       patientForm.reset();
       setIsAddingPatient(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "No se pudo agregar el paciente. Inténtalo de nuevo.",
+        description: error.message || "No se pudo agregar el paciente. Inténtalo de nuevo.",
         variant: "destructive",
       });
     } finally {
