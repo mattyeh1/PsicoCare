@@ -46,9 +46,13 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      refetchOnWindowFocus: true,
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      retry: (failureCount, error) => {
+        // Solo reintentar una vez si el error no es 401 (Unauthorized)
+        return failureCount < 1 && 
+               !(error instanceof Error && error.message.includes('401'));
+      },
     },
     mutations: {
       retry: false,

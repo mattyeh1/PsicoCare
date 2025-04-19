@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -92,8 +92,15 @@ const availabilityFormSchema = z.object({
 });
 
 const Appointments = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, refetchUser } = useAuth();
   const { toast } = useToast();
+  
+  // Refrescar datos de usuario al cargar la página
+  useEffect(() => {
+    if (refetchUser) {
+      refetchUser();
+    }
+  }, [refetchUser]);
   const [isCreating, setIsCreating] = useState(false);
   const [isAddingAvailability, setIsAddingAvailability] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
