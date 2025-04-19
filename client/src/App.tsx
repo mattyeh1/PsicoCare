@@ -16,10 +16,20 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 // Componente para rutas protegidas
 function ProtectedRoute({ component: Component, ...rest }: { component: any, path: string }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, refetchUser } = useAuth();
+  
+  // Efecto para forzar la recarga de datos de usuario al ingresar a una ruta protegida
+  useEffect(() => {    
+    if (refetchUser) {
+      refetchUser().catch(err => {
+        console.error("Error al verificar la autenticación:", err);
+      });
+    }
+  }, [refetchUser, rest.path]);
   
   if (isLoading) {
     return (
@@ -29,7 +39,8 @@ function ProtectedRoute({ component: Component, ...rest }: { component: any, pat
     );
   }
   
-  if (!isAuthenticated) {
+  // Verificación estricta: tanto isAuthenticated como user deben existir
+  if (!isAuthenticated || !user) {
     return <Redirect to="/login" />;
   }
   

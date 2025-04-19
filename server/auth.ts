@@ -31,14 +31,15 @@ async function comparePasswords(supplied: string, stored: string) {
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "j5ts2B6nMVGsdnvbFzEZ",
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Asegura que la sesión se guarde en cada petición
+    saveUninitialized: true, // Guarda sesiones nuevas/no inicializadas
     store: storage.sessionStore,
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 días
       httpOnly: true,
       secure: process.env.NODE_ENV === "production" ? true : false,
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/' // Asegura que la cookie sea válida para toda la aplicación
     },
     rolling: true // Renovar la cookie en cada respuesta
   };
@@ -63,12 +64,23 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    // Serializar solo el ID del usuario para mayor seguridad
+    done(null, user.id);
+  });
+  
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        // Si el usuario no se encuentra, rechazar la deserialización
+        return done(null, false);
+      }
+      // Usuario encontrado, continuar
       done(null, user);
     } catch (err) {
+      // Manejar errores durante la deserialización
+      console.error('Error al deserializar usuario:', err);
       done(err);
     }
   });
@@ -113,12 +125,37 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      
+      // Destruir sesión al cerrar sesión para mayor seguridad
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Error al destruir la sesión:', err);
+          return next(err);
+        }
+        // Enviar respuesta exitosa
+        res.sendStatus(200);
+      });
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "No autenticado" });
+    // Verificar autenticación
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "No autenticado" });
+    }
+    
+    // Verificar que el usuario existe
+    if (!req.user.id) {
+      // Sesión inválida, cerrarla
+      req.logout((err) => {
+        if (err) console.error('Error al cerrar sesión de usuario inválido:', err);
+        req.session.destroy((err) => {
+          if (err) console.error('Error al destruir sesión inválida:', err);
+        });
+      });
+      return res.status(401).json({ error: "Sesión inválida" });
+    }
+    
     // Omite el campo password en la respuesta
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
