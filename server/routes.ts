@@ -101,11 +101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/patients", isAuthenticated, validateRequest(insertPatientSchema), async (req, res) => {
     try {
       const userId = (req.user as any).id;
+      console.log("Creando paciente con datos:", req.body);
       const patientData = { ...req.body, psychologist_id: userId };
+      console.log("Datos completos a insertar:", patientData);
       const patient = await storage.createPatient(patientData);
       res.status(201).json(patient);
     } catch (error) {
-      res.status(500).json({ message: "Error creating patient" });
+      console.error("Error al crear paciente:", error);
+      res.status(500).json({ message: "Error creating patient", error: error instanceof Error ? error.message : String(error) });
     }
   });
 

@@ -370,6 +370,10 @@ export class DatabaseStorage implements IStorage {
   // Cache para mejorar el rendimiento
   private userCache = new Map<number, User & { cacheTime: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos en milisegundos
+  
+  // Cache para pacientes
+  private patientCache = new Map<number, { data: Patient, timestamp: number }>();
+  private readonly PATIENT_CACHE_TTL = 5 * 60 * 1000; // 5 minutos en ms
 
   async getUser(id: number): Promise<User | undefined> {
     // Verificar si el usuario está en caché y si la caché sigue siendo válida
@@ -538,7 +542,7 @@ export class DatabaseStorage implements IStorage {
     return updatedPatient;
   }
 
-  // Optimización para manejo de citas
+  // Cache para citas (ya declarada arriba)
   private appointmentCache = new Map<number, { data: Appointment, timestamp: number }>();
   private readonly APPOINTMENT_CACHE_TTL = 2 * 60 * 1000; // 2 minutos en ms
 
