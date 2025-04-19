@@ -59,8 +59,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(credentials),
+          credentials: "include",
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || "Credenciales incorrectas");
+        }
+        
+        return data;
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
@@ -72,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       toast({
         title: "Error de inicio de sesión",
-        description: "Credenciales incorrectas. Inténtalo de nuevo.",
+        description: error.message || "Credenciales incorrectas. Inténtalo de nuevo.",
         variant: "destructive",
       });
     },
@@ -80,8 +96,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
-      const res = await apiRequest("POST", "/api/register", userData);
-      return await res.json();
+      try {
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(userData),
+          credentials: "include",
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || "Error al registrar usuario");
+        }
+        
+        return data;
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
@@ -91,9 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      // Mostrar mensaje específico del error
       toast({
         title: "Error de registro",
-        description: "Hubo un problema al crear tu cuenta. Inténtalo de nuevo.",
+        description: error.message || "Hubo un problema al crear tu cuenta. Inténtalo de nuevo.",
         variant: "destructive",
       });
     },
@@ -101,7 +134,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      try {
+        const res = await fetch("/api/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Error al cerrar sesión");
+        }
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
@@ -113,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       toast({
         title: "Error al cerrar sesión",
-        description: error.message,
+        description: error.message || "Hubo un problema al cerrar la sesión.",
         variant: "destructive",
       });
     },
