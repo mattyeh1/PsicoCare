@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Users, MessageSquare, FileText } from "lucide-react";
+import { Calendar, Clock, Users, MessageSquare, FileText, Pencil } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import AppointmentCalendar from "@/components/calendar/AppointmentCalendar";
@@ -30,10 +30,22 @@ const Dashboard = () => {
     queryKey: ["/api/patients"],
   });
 
+  // Format de date to DD/MM/YYYY
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Today's date
+  const today = new Date();
+  const formattedToday = formatDate(today);
+  
   // Calculate stats
   const todayAppointments = appointments?.filter(appointment => {
     const appointmentDate = new Date(appointment.date);
-    const today = new Date();
     return appointmentDate.toDateString() === today.toDateString();
   }).length || 0;
   
@@ -41,7 +53,6 @@ const Dashboard = () => {
   
   const upcomingAppointments = appointments?.filter(appointment => {
     const appointmentDate = new Date(appointment.date);
-    const today = new Date();
     return appointmentDate > today && appointment.status === 'scheduled';
   }).length || 0;
 
@@ -56,48 +67,54 @@ const Dashboard = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Citas hoy
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{todayAppointments}</div>
-              <p className="text-xs text-muted-foreground">
-                {todayAppointments === 1 ? 'cita programada' : 'citas programadas'} para hoy
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pacientes totales
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalPatients}</div>
-              <p className="text-xs text-muted-foreground">
-                {totalPatients === 1 ? 'paciente activo' : 'pacientes activos'} en tratamiento
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Próximas citas
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{upcomingAppointments}</div>
-              <p className="text-xs text-muted-foreground">
-                {upcomingAppointments === 1 ? 'cita próxima' : 'citas próximas'} agendadas
-              </p>
-            </CardContent>
-          </Card>
+          <Link href={`/appointments?date=${today.toISOString()}`} className="block">
+            <Card className="h-full transition-all hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Citas hoy
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{todayAppointments}</div>
+                <p className="text-xs text-muted-foreground">
+                  {todayAppointments === 1 ? 'cita programada' : 'citas programadas'} para {formattedToday}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/profile" className="block">
+            <Card className="h-full transition-all hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Pacientes totales
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalPatients}</div>
+                <p className="text-xs text-muted-foreground">
+                  {totalPatients === 1 ? 'paciente activo' : 'pacientes activos'} en tratamiento
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/appointments" className="block">
+            <Card className="h-full transition-all hover:shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Próximas citas
+                </CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{upcomingAppointments}</div>
+                <p className="text-xs text-muted-foreground">
+                  {upcomingAppointments === 1 ? 'cita próxima' : 'citas próximas'} agendadas
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         <Tabs defaultValue="calendar" className="space-y-4">
@@ -108,11 +125,19 @@ const Dashboard = () => {
           <TabsContent value="calendar" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <Card className="col-span-full md:col-span-2 lg:col-span-5">
-                <CardHeader>
-                  <CardTitle>Calendario de citas</CardTitle>
-                  <CardDescription>
-                    Vista de tus citas programadas y disponibilidad
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Calendario de citas</CardTitle>
+                    <CardDescription>
+                      Vista de tus citas programadas y disponibilidad
+                    </CardDescription>
+                  </div>
+                  <Link href="/appointments">
+                    <Button variant="outline" size="sm">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Ver todo
+                    </Button>
+                  </Link>
                 </CardHeader>
                 <CardContent className="pl-2">
                   <AppointmentCalendar
@@ -129,32 +154,59 @@ const Dashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Link href="/appointments">
-                        <Button className="w-full" variant="outline">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Gestionar citas
-                        </Button>
-                      </Link>
-                      <Link href="/messages">
-                        <Button className="w-full" variant="outline">
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          Mensajes
-                        </Button>
-                      </Link>
-                      <Link href="/consent-forms">
-                        <Button className="w-full" variant="outline">
-                          <FileText className="mr-2 h-4 w-4" />
-                          Consentimientos
-                        </Button>
-                      </Link>
-                      <Link href="/profile">
-                        <Button className="w-full" variant="outline">
-                          <Users className="mr-2 h-4 w-4" />
-                          Pacientes
-                        </Button>
-                      </Link>
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Citas</h3>
+                      <div className="grid grid-cols-1 gap-2">
+                        <Link href="/appointments?action=new">
+                          <Button className="w-full justify-start" variant="default">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Agendar nueva cita
+                          </Button>
+                        </Link>
+                        <Link href="/appointments">
+                          <Button className="w-full justify-start" variant="outline">
+                            <Clock className="mr-2 h-4 w-4" />
+                            Gestionar citas existentes
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Comunicaciones</h3>
+                      <div className="grid grid-cols-1 gap-2">
+                        <Link href="/messages?action=new">
+                          <Button className="w-full justify-start" variant="outline">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Enviar mensaje
+                          </Button>
+                        </Link>
+                        <Link href="/consent-forms">
+                          <Button className="w-full justify-start" variant="outline">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Formularios de consentimiento
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Pacientes</h3>
+                      <div className="grid grid-cols-1 gap-2">
+                        <Link href="/profile?action=newPatient">
+                          <Button className="w-full justify-start" variant="outline">
+                            <Users className="mr-2 h-4 w-4" />
+                            Añadir paciente
+                          </Button>
+                        </Link>
+                        <Link href="/profile">
+                          <Button className="w-full justify-start" variant="outline">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Gestionar pacientes
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -162,6 +214,14 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           <TabsContent value="profile" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <Link href="/profile">
+                <Button variant="outline" size="sm">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar perfil
+                </Button>
+              </Link>
+            </div>
             <ProfileCard />
           </TabsContent>
         </Tabs>

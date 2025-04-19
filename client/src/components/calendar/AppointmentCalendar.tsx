@@ -19,6 +19,7 @@ interface AppointmentCalendarProps {
 
 const AppointmentCalendar = ({ appointments, loading }: AppointmentCalendarProps) => {
   const [events, setEvents] = useState<any[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   
   // Fetch patients for patient names
   const { data: patients } = useQuery<Patient[]>({
@@ -60,6 +61,7 @@ const AppointmentCalendar = ({ appointments, loading }: AppointmentCalendarProps
           allDay: false,
           resource: appointment,
           backgroundColor,
+          patient: patient,
         };
       });
       
@@ -205,8 +207,28 @@ const AppointmentCalendar = ({ appointments, loading }: AppointmentCalendarProps
     return <div className="h-[600px] flex items-center justify-center">Cargando calendario...</div>;
   }
 
+  // Handle event selection
+  const handleSelectEvent = (event: any) => {
+    setSelectedEvent(event);
+  };
+
+  // Handle creating a slot in calendar
+  const handleSelectSlot = ({ start }: { start: Date }) => {
+    // Navigate to appointments page with date pre-selected
+    window.location.href = `/appointments?date=${start.toISOString()}`;
+  };
+
   return (
     <div className="h-[600px]">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground">
+          {events.length} {events.length === 1 ? 'cita' : 'citas'} en total
+        </h3>
+        <a href="/appointments" className="text-sm text-primary hover:underline">
+          Agendar nueva cita
+        </a>
+      </div>
+      
       <Calendar
         localizer={localizer}
         events={events}
@@ -218,6 +240,9 @@ const AppointmentCalendar = ({ appointments, loading }: AppointmentCalendarProps
           toolbar: CustomToolbar,
           event: EventDetails,
         }}
+        selectable
+        onSelectEvent={handleSelectEvent}
+        onSelectSlot={handleSelectSlot}
         messages={{
           next: "Siguiente",
           previous: "Anterior",
@@ -236,6 +261,43 @@ const AppointmentCalendar = ({ appointments, loading }: AppointmentCalendarProps
         views={['month', 'week', 'day']}
         defaultView="week"
       />
+      
+      {selectedEvent && (
+        <div className="mt-4 p-4 border rounded-md bg-muted/20">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-medium">{selectedEvent.title}</h3>
+              <p className="text-sm text-muted-foreground">
+                {moment(selectedEvent.start).format('DD/MM/YYYY')} · {moment(selectedEvent.start).format('HH:mm')} - {moment(selectedEvent.end).format('HH:mm')}
+              </p>
+              <p className="text-sm mt-1">
+                Estado: <span className={`px-2 py-1 rounded-full text-xs inline-block ${
+                  selectedEvent.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                  selectedEvent.status === 'completed' ? 'bg-green-100 text-green-800' :
+                  selectedEvent.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {selectedEvent.status === 'scheduled' ? 'Programada' :
+                   selectedEvent.status === 'completed' ? 'Completada' : 
+                   selectedEvent.status === 'cancelled' ? 'Cancelada' : 'Ausente'}
+                </span>
+              </p>
+              {selectedEvent.resource.notes && (
+                <div className="mt-2">
+                  <h4 className="text-sm font-medium">Notas:</h4>
+                  <p className="text-sm">{selectedEvent.resource.notes}</p>
+                </div>
+              )}
+            </div>
+            <a 
+              href={`/appointments?appointment=${selectedEvent.id}`} 
+              className="text-xs text-primary hover:underline"
+            >
+              Editar cita
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
