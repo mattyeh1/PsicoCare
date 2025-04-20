@@ -66,11 +66,29 @@ const Register = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    registerMutation.mutate(values, {
-      onSuccess: () => {
-        navigate("/dashboard");
-      }
-    });
+    try {
+      console.log("Iniciando registro con datos:", {
+        ...values,
+        password: '[REDACTED]' // No mostrar la contraseña en los logs
+      });
+      
+      registerMutation.mutate(values, {
+        onSuccess: (data) => {
+          console.log("Registro exitoso, datos recibidos:", data);
+          // Usamos window.location en lugar de navigate para forzar una recarga completa
+          // Esto resolverá problemas de estado de autenticación
+          window.location.href = "/dashboard";
+        },
+        onError: (error) => {
+          console.error("Error durante el registro:", error);
+          form.setError("root", { 
+            message: error.message || "Error al registrar usuario. Inténtalo de nuevo." 
+          });
+        }
+      });
+    } catch (error) {
+      console.error("Error al procesar el formulario:", error);
+    }
   };
 
   return (
@@ -88,6 +106,11 @@ const Register = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {form.formState.errors.root && (
+                <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm">
+                  {form.formState.errors.root.message}
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="username"

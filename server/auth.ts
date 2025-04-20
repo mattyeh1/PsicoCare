@@ -104,33 +104,78 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      // Debug para ver qué se recibe
+      console.log("Recibida solicitud de registro:", {
+        ...req.body,
+        password: req.body.password ? '[REDACTED]' : undefined
+      });
+      
       // Validar que el cuerpo de la solicitud tenga los campos requeridos
       if (!req.body || !req.body.username || !req.body.password) {
+        console.log("Datos de registro incompletos");
         return res.status(400).json({ error: "Datos incompletos" });
       }
 
+      // Validar email
+      if (!req.body.email) {
+        return res.status(400).json({ error: "El email es obligatorio" });
+      }
+
+      // Validar otros campos obligatorios
+      if (!req.body.full_name) {
+        return res.status(400).json({ error: "El nombre completo es obligatorio" });
+      }
+
+      if (!req.body.specialty) {
+        return res.status(400).json({ error: "La especialidad es obligatoria" });
+      }
+
+      // Verificar si el usuario ya existe
+      console.log("Verificando si el usuario ya existe:", req.body.username);
       const existingUser = await storage.getUserByUsername(req.body.username);
+      
       if (existingUser) {
+        console.log("Usuario ya existe:", req.body.username);
         return res.status(400).json({ error: "El nombre de usuario ya existe" });
       }
 
+      // Verificar si el email ya existe
+      const existingEmail = await storage.getUserByEmail(req.body.email);
+      if (existingEmail) {
+        console.log("Email ya existe:", req.body.email);
+        return res.status(400).json({ error: "El email ya está registrado" });
+      }
+
+      console.log("Creando nuevo usuario:", req.body.username);
+      // Crear el usuario
+      const hashedPassword = await hashPassword(req.body.password);
       const user = await storage.createUser({
         ...req.body,
-        password: await hashPassword(req.body.password),
+        password: hashedPassword,
       });
 
+      console.log("Usuario creado, iniciando sesión:", user.id);
+      // Iniciar sesión automáticamente
       req.login(user, (err) => {
         if (err) {
           console.error("Error en req.login:", err);
           return next(err);
         }
+        
         // Remover el password antes de enviar la respuesta
         const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
+        
+        // Tocar la sesión para actualizarla
+        if (req.session) {
+          req.session.touch();
+        }
+        
+        console.log("Registro completado con éxito, enviando respuesta");
+        return res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
       console.error("Error en registro:", error);
-      res.status(500).json({ error: "Error interno del servidor" });
+      return res.status(500).json({ error: "Error interno del servidor" });
     }
   });
 
