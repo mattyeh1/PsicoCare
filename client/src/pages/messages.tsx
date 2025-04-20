@@ -93,107 +93,69 @@ const Messages = () => {
   const [isSuggestingTitle, setIsSuggestingTitle] = useState(false);
   const [isImprovingMessage, setIsImprovingMessage] = useState(false);
 
-  // Consultar datos del usuario para estar seguros que hay sesión
-  const { data: userCheck } = useQuery({
-    queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    retry: 0,
-    refetchOnMount: true,
-    staleTime: 0, // Asegurar que siempre se obtenga el usuario actual
+  // Consultar datos del usuario para estar seguros que hay sesión - método más simple y directo
+  const { 
+    data: userCheck, 
+    refetch: refetchUserCheck,
+    isLoading: isUserCheckLoading
+  } = useQuery<User>({
+    queryKey: ["/api/user?check=true"],
+    retry: 3, // Permitir reintentos automáticos
+    retryDelay: 1000, // Esperar un segundo entre reintentos
+    refetchOnMount: true, 
+    staleTime: 0
   });
 
-  // Estado para controlar intentos de verificación
-  const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const maxVerificationAttempts = 3;
-
-  // Verificar autenticación y redirigir si es necesario
+  // Verificar autenticación y redirigir si es necesario - versión simplificada
   useEffect(() => {
-    // Solo procedemos si ya intentamos cargar datos
-    if (isLoading) return;
+    // Solo ejecutar cuando termine de cargar
+    if (isLoading || isUserCheckLoading) return;
     
-    // Agregar logging detallado para diagnóstico de la sesión
-    const sessionData = {
-      user: !!user, 
-      userCheck: !!userCheck, 
-      isLoading,
-      verificationAttempts,
-      cookiesEnabled: navigator.cookieEnabled,
-      hasSessionCookie: document.cookie.includes("connect.sid"),
-      documentCookie: document.cookie.length > 0 ? "presente" : "ausente",
-      userAgent: navigator.userAgent,
-      url: window.location.href
-    };
+    // Log de estado
+    console.log('[Messages Page] Estado de autenticación:', { 
+      userAuth: !!user, 
+      userCheck: !!userCheck,
+      cookiePresent: document.cookie.includes('connect.sid')
+    });
     
-    console.log(`[Messages Page] Estado de autenticación (intento ${verificationAttempts+1}/${maxVerificationAttempts}):`, sessionData);
-    
-    // Verificar si hay sesión o si aún tenemos reintentos
+    // Si no hay sesión, redirigir después de verificar
     if (!user && !userCheck) {
-      if (verificationAttempts < maxVerificationAttempts) {
-        console.log(`[Messages Page] Reintentando verificación de autenticación (${verificationAttempts+1}/${maxVerificationAttempts})`);
-        
-        // Incrementar contador de intentos
-        setVerificationAttempts(prev => prev + 1);
-        
-        // Esperar un momento y reintentar la consulta de usuario
-        const retryTimer = setTimeout(() => {
-          console.log('[Messages Page] Reintentando refetch de usuario...');
-          // Forzar refetch de datos de usuario
-          if (refetchUserCheck) refetchUserCheck();
-          if (refetchUser) refetchUser();
-        }, 800); // Pequeña espera para dar tiempo a que se establezca la sesión
-        
-        return () => clearTimeout(retryTimer);
-      } else {
-        console.warn("[Messages Page] No se detectó sesión después de múltiples intentos. Redirigiendo a login.");
-        
-        // Construir URL con parámetro de redirección de retorno
-        const returnUrl = encodeURIComponent(window.location.pathname);
-        const loginUrl = `/login?returnTo=${returnUrl}`;
-        
-        console.log("[Messages Page] URL de redirección:", loginUrl);
-        
-        // Mostrar mensaje error con posibilidad de reintentar
-        toast({
-          title: "Sesión expirada o no iniciada",
-          description: (
-            <div className="space-y-2">
-              <p>Se requiere iniciar sesión para acceder a esta sección.</p>
-              <div className="flex gap-2 mt-2 justify-end">
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  onClick={() => {
-                    setVerificationAttempts(0); // Reiniciar contador
-                    window.location.reload();
-                  }}
-                >
-                  Reintentar
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={() => window.location.href = loginUrl}
-                >
-                  Iniciar sesión
-                </Button>
-              </div>
-            </div>
-          ),
-          variant: "destructive",
-          duration: 10000, // Mostrar por 10 segundos
-        });
-        
-        // Esperamos un momento para evitar redirecciones prematuras
-        const redirectTimer = setTimeout(() => {
-          window.location.href = loginUrl;
-        }, 5000); // Esperar 5 segundos antes de redirigir automáticamente
-        
-        return () => clearTimeout(redirectTimer);
-      }
+      console.warn("[Messages Page] No se detectó sesión. Redirigiendo a login.");
+      
+      // Construir URL con parámetro de redirección de retorno
+      const returnUrl = encodeURIComponent(window.location.pathname);
+      const loginUrl = `/login?returnTo=${returnUrl}`;
+      
+      // Mostrar mensaje de error
+      toast({
+        title: "Sesión expirada o no iniciada",
+        description: "Se requiere iniciar sesión para acceder a esta sección.",
+        variant: "destructive",
+        action: (
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => window.location.href = loginUrl}
+          >
+            Iniciar sesión
+          </Button>
+        ),
+        duration: 5000,
+      });
+      
+      // Redirigir automáticamente
+      const redirectTimer = setTimeout(() => {
+        console.log("[Messages Page] Redirigiendo a:", loginUrl);
+        window.location.href = loginUrl;
+      }, 2000);
+      
+      return () => clearTimeout(redirectTimer);
     } else if (user || userCheck) {
-      console.log('[Messages Page] Usuario autenticado correctamente:', user?.username || userCheck?.username);
+      // Usuario autenticado correctamente
+      const userName = (user?.username || userCheck?.username || "Usuario");
+      console.log(`[Messages Page] Usuario autenticado: ${userName}`);
     }
-  }, [user, userCheck, toast, isLoading, verificationAttempts, refetchUser, refetchUserCheck]);
+  }, [user, userCheck, toast, isLoading, isUserCheckLoading]);
 
   // Fetch message templates with authentication handling
   const { data: templates, isLoading: templatesLoading } = useQuery<MessageTemplate[]>({

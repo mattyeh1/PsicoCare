@@ -33,29 +33,34 @@ export function setupAuth(app: Express) {
   const isDev = process.env.NODE_ENV !== "production";
   console.log("Configurando sesión en modo:", isDev ? "DESARROLLO" : "PRODUCCIÓN");
   
-  // Generamos un secreto más fuerte
-  const sessionSecret = process.env.SESSION_SECRET || 
-                        randomBytes(32).toString('hex');
+  // Generamos un secreto más fuerte y fijo para evitar invalidación de sesiones al reiniciar
+  const sessionSecret = "fixed_secure_session_secret_for_development_only_change_in_production";
   
   // Crear un identificador de aplicación único para esta instancia                    
   const appInstanceId = randomBytes(8).toString('hex');
   console.log(`ID de instancia de aplicación: ${appInstanceId}`);
   
+  // Opciones de sesión más robustas
   const sessionSettings: session.SessionOptions = {
+    name: "connect.sid", // Nombre estándar de cookie para mayor compatibilidad
     secret: sessionSecret,
-    resave: true, // En desarrollo, mejor guardar siempre para asegurar persistencia
-    saveUninitialized: true, // En desarrollo, guardar incluso sesiones sin inicializar
+    resave: true,        // Importante: guardar siempre para asegurar persistencia
+    saveUninitialized: true, // Necesario para contar con sesiones de usuarios no autenticados
+    rolling: true,       // Resetear el tiempo de expiración en cada request
     store: storage.sessionStore,
+    genid: () => {
+      // Generamos IDs de sesión más cortos y compatibles con todos los navegadores
+      return randomBytes(16).toString('hex');
+    },
+    // Configuración robusta de cookies
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 30, // 30 días para mayor persistencia
-      httpOnly: true,
-      secure: false, // En desarrollo, no usar secure para permitir HTTP
-      sameSite: 'lax',
-      path: '/', // Asegura que la cookie sea válida para toda la aplicación
-      domain: undefined // Permitir cualquier dominio en desarrollo
-    },
-    rolling: true, // Renovar la cookie en cada respuesta
-    name: 'connect.sid' // Usar nombre estándar para mayor compatibilidad
+      httpOnly: true,     // Evita acceso desde JavaScript del cliente
+      secure: false,      // En desarrollo usamos HTTP
+      path: '/',         // Disponible en toda la aplicación
+      sameSite: 'lax',   // Más compatible y menos restrictivo que 'strict'
+      domain: undefined   // Permitir cualquier dominio en desarrollo
+    }
   };
 
   app.set("trust proxy", 1);
