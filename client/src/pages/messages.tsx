@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -93,14 +93,43 @@ const Messages = () => {
   const [isSuggestingTitle, setIsSuggestingTitle] = useState(false);
   const [isImprovingMessage, setIsImprovingMessage] = useState(false);
 
-  // Fetch message templates
-  const { data: templates, isLoading: templatesLoading } = useQuery<MessageTemplate[]>({
-    queryKey: ["/api/message-templates"],
+  // Consultar datos del usuario para estar seguros que hay sesión
+  const { data: userCheck } = useQuery({
+    queryKey: ["/api/user"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: 0,
+    refetchOnMount: true,
+    staleTime: 0, // Asegurar que siempre se obtenga el usuario actual
   });
 
-  // Fetch patients
+  // Verificar autenticación y redirigir si es necesario
+  useEffect(() => {
+    if (!user && !userCheck) {
+      toast({
+        title: "Sesión expirada o no iniciada",
+        description: "Por favor, inicie sesión para acceder a esta sección",
+        variant: "destructive",
+      });
+      window.location.href = "/auth";
+    }
+  }, [user, userCheck, toast]);
+
+  // Fetch message templates with authentication handling
+  const { data: templates, isLoading: templatesLoading } = useQuery<MessageTemplate[]>({
+    queryKey: ["/api/message-templates"],
+    // No sobrescribir el queryFn por defecto
+    enabled: !!user, // Solo ejecutar si el usuario está autenticado
+    retry: false,
+    refetchOnWindowFocus: true
+  });
+
+  // Fetch patients with authentication handling
   const { data: patients } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
+    // No sobrescribir el queryFn por defecto
+    enabled: !!user, // Solo ejecutar si el usuario está autenticado
+    retry: false,
+    refetchOnWindowFocus: true
   });
 
   // Template form
