@@ -30,15 +30,18 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   // Mejorar los ajustes de la sesión para mayor estabilidad
+  const isDev = process.env.NODE_ENV !== "production";
+  console.log("Configurando sesión en modo:", isDev ? "DESARROLLO" : "PRODUCCIÓN");
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "j5ts2B6nMVGsdnvbFzEZ",
-    resave: false, // Solo guardar la sesión si algo cambió
-    saveUninitialized: false, // No guardar sesiones vacías
+    resave: true, // En desarrollo, mejor guardar siempre para asegurar persistencia
+    saveUninitialized: true, // En desarrollo, guardar incluso sesiones sin inicializar
     store: storage.sessionStore,
     cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 14, // 14 días para mayor persistencia
+      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 días para mayor persistencia
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production" ? true : false,
+      secure: false, // En desarrollo, no usar secure para permitir HTTP
       sameSite: 'lax',
       path: '/' // Asegura que la cookie sea válida para toda la aplicación
     },
@@ -125,22 +128,68 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
+    console.log("Intento de login para usuario:", req.body.username);
+    
     passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ error: "Credenciales inválidas" });
+      if (err) {
+        console.error("Error durante autenticación:", err);
+        return next(err);
+      }
+      
+      if (!user) {
+        console.warn(`Credenciales inválidas para usuario: ${req.body.username}`);
+        return res.status(401).json({ error: "Credenciales inválidas" });
+      }
+      
+      console.log(`Usuario autenticado correctamente: ${user.username} (ID: ${user.id})`);
       
       req.login(user, (err: any) => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Error en req.login:", err);
+          return next(err);
+        }
+        
+        // Registrar sesión
+        console.log(`Sesión iniciada para ${user.username}, ID de sesión: ${req.sessionID}`);
+        
         // Omite el campo password en la respuesta
         const { password, ...userWithoutPassword } = user;
+        
+        // Utilizar cookie explícita para reforzar la persistencia de sesión
+        res.cookie('session_active', 'true', { 
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+          httpOnly: false,
+          path: '/',
+          secure: false
+        });
+        
         res.status(200).json(userWithoutPassword);
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
+    console.log("Solicitud de cierre de sesión recibida. Datos de sesión:", {
+      sessionID: req.sessionID,
+      isAuthenticated: req.isAuthenticated(),
+      userID: req.user?.id
+    });
+    
+    if (!req.isAuthenticated() || !req.user) {
+      console.log("Intento de cerrar sesión sin estar autenticado");
+      return res.status(200).json({ message: "No hay sesión activa" });
+    }
+    
+    const userId = req.user.id;
+    const username = req.user.username;
+    
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        console.error('Error al cerrar sesión:', err);
+        return next(err);
+      }
+      
+      console.log(`Logout exitoso para usuario ${username} (ID: ${userId})`);
       
       // Destruir sesión al cerrar sesión para mayor seguridad
       req.session.destroy((err) => {
@@ -148,8 +197,15 @@ export function setupAuth(app: Express) {
           console.error('Error al destruir la sesión:', err);
           return next(err);
         }
+        
+        // Limpiar todas las cookies
+        res.clearCookie('psiconnect.sid', { path: '/' });
+        res.clearCookie('session_active', { path: '/' });
+        
+        console.log("Sesión destruida y cookies eliminadas");
+        
         // Enviar respuesta exitosa
-        res.sendStatus(200);
+        res.status(200).json({ message: "Sesión cerrada correctamente" });
       });
     });
   });
