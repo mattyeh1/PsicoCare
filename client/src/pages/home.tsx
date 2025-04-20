@@ -29,12 +29,23 @@ const Home = () => {
               <div className="mt-8 sm:mt-10">
                 <div className="sm:flex justify-start sm:justify-center lg:justify-start">
                   <div className="rounded-md shadow">
+                    <Link href="/register-selection">
+                      <Button 
+                        size="lg" 
+                        className="w-full sm:w-auto"
+                      >
+                        Crear cuenta
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="mt-3 sm:mt-0 sm:ml-3">
                     <Button 
                       onClick={() => scrollToSection("contact")}
+                      variant="outline" 
                       size="lg" 
                       className="w-full sm:w-auto"
                     >
-                      Solicitar acceso
+                      Solicitar información
                     </Button>
                   </div>
                   <div className="mt-3 sm:mt-0 sm:ml-3">

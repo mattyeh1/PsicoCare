@@ -7,6 +7,9 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import RegisterSelection from "@/pages/register-selection";
+import RegisterPsychologist from "@/pages/register-psychologist";
+import RegisterPatient from "@/pages/register-patient";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Appointments from "@/pages/appointments";
@@ -76,7 +79,12 @@ function AppRoutes() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
+      <Route path="/register" component={RegisterSelection} />
+      <Route path="/register-selection" component={RegisterSelection} />
+      <Route path="/register-psychologist" component={RegisterPsychologist} />
+      <Route path="/register-patient" component={RegisterPatient} />
+      {/* Mantener temporalmente la ruta antigua para compatibilidad */}
+      <Route path="/register-old" component={Register} />
       <Route path="/dashboard">
         <ProtectedRoute path="/dashboard" component={Dashboard} />
       </Route>
