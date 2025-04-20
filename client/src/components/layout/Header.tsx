@@ -71,17 +71,19 @@ const Header = () => {
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-10">
-            <Link href="/#features" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
-              Funcionalidades
-            </Link>
-            <Link href="/#benefits" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
-              Beneficios
-            </Link>
-            <Link href="/#contact" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
-              Contacto
-            </Link>
-          </nav>
+          {!isAuthenticated && (
+            <nav className="hidden md:flex space-x-10">
+              <Link href="/#features" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
+                Funcionalidades
+              </Link>
+              <Link href="/#benefits" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
+                Beneficios
+              </Link>
+              <Link href="/#contact" className="text-base font-medium text-neutral-800 hover:text-primary transition-colors">
+                Contacto
+              </Link>
+            </nav>
+          )}
           
           <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
             {isAuthenticated ? (
@@ -162,27 +164,31 @@ const Header = () => {
       {mobileMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link 
-              href="/#features" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Funcionalidades
-            </Link>
-            <Link 
-              href="/#benefits" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Beneficios
-            </Link>
-            <Link 
-              href="/#contact" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Contacto
-            </Link>
+            {!isAuthenticated && (
+              <>
+                <Link 
+                  href="/#features" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Funcionalidades
+                </Link>
+                <Link 
+                  href="/#benefits" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Beneficios
+                </Link>
+                <Link 
+                  href="/#contact" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Contacto
+                </Link>
+              </>
+            )}
             
             {isAuthenticated ? (
               <>
