@@ -71,22 +71,35 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
+    try {
+      // Validar que el cuerpo de la solicitud tenga los campos requeridos
+      if (!req.body || !req.body.username || !req.body.password) {
+        return res.status(400).json({ error: "Datos incompletos" });
+      }
+
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "El nombre de usuario ya existe" });
+      }
+
+      const user = await storage.createUser({
+        ...req.body,
+        password: await hashPassword(req.body.password),
+      });
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Error en req.login:", err);
+          return next(err);
+        }
+        // Remover el password antes de enviar la respuesta
+        const { password, ...userWithoutPassword } = user;
+        res.status(201).json(userWithoutPassword);
+      });
+    } catch (error) {
+      console.error("Error en registro:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
     }
-
-    const user = await storage.createUser({
-      ...req.body,
-      password: await hashPassword(req.body.password),
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      // Remover el password antes de enviar la respuesta
-      const { password, ...userWithoutPassword } = user;
-      res.status(201).json(userWithoutPassword);
-    });
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {

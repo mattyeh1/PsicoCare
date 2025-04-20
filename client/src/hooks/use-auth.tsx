@@ -75,28 +75,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log("Iniciando solicitud de login con:", credentials.username);
         
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(credentials),
-          credentials: "include",
-        });
+        // Usamos apiRequest para mantener consistencia en todas las peticiones
+        const res = await apiRequest("POST", "/api/login", credentials);
         
         // Verificar cookies después del login
         console.log("Cookies después de login:", document.cookie);
         
-        const data = await res.json();
+        return await res.json();
+      } catch (error: any) {
+        console.error("Error en proceso de login:", error);
         
-        if (!res.ok) {
-          console.error("Error en login:", data);
-          throw new Error(data.error || "Credenciales incorrectas");
+        // Si el error es un objeto con un mensaje, extraerlo
+        if (error.message) {
+          throw new Error(error.message);
         }
         
-        console.log("Login exitoso para:", credentials.username);
-        return data;
-      } catch (error) {
-        console.error("Error en proceso de login:", error);
-        throw error;
+        // Si es otro tipo de error, lanzar un mensaje genérico
+        throw new Error("Error al iniciar sesión. Credenciales incorrectas o problema de conexión.");
       }
     },
     onSuccess: (data) => {
@@ -131,33 +126,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
       try {
-        const res = await fetch("/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(userData),
-          credentials: "include",
-        });
+        console.log("Iniciando registro con:", userData.username);
         
-        const data = await res.json();
+        // Usamos apiRequest para mantener consistencia en la forma de hacer peticiones
+        const res = await apiRequest("POST", "/api/register", userData);
         
-        if (!res.ok) {
-          throw new Error(data.error || "Error al registrar usuario");
+        // Verificar si hay cookies después del registro
+        console.log("Cookies después de registro:", document.cookie);
+        
+        return await res.json();
+      } catch (error: any) {
+        console.error("Error en proceso de registro:", error);
+        
+        // Si el error es un objeto con un mensaje, extraerlo
+        if (error.message) {
+          throw new Error(error.message);
         }
         
-        return data;
-      } catch (error) {
-        throw error;
+        // Si es otro tipo de error, lanzar un mensaje genérico
+        throw new Error("Error al registrar usuario. Inténtalo de nuevo más tarde.");
       }
     },
     onSuccess: (data) => {
+      console.log("Registro completado, actualizando caché del usuario");
+      // Guardar el usuario en la caché de la consulta
       queryClient.setQueryData(["/api/user"], data);
+      
+      // Refrescar todas las consultas que dependen de la autenticación
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/user"]
+      });
+      
+      // Guardar indicador de sesión activa en almacenamiento local
+      localStorage.setItem("sessionActive", "true");
+      localStorage.setItem("lastKnownUser", JSON.stringify(data));
+      sessionStorage.setItem("userSession", "active");
+      
       toast({
         title: "Registro exitoso",
         description: "Bienvenido/a a PsiConnect",
       });
     },
     onError: (error: Error) => {
-      // Mostrar mensaje específico del error
+      console.error("Error en registro mutation:", error);
+      
       toast({
         title: "Error de registro",
         description: error.message || "Hubo un problema al crear tu cuenta. Inténtalo de nuevo.",
@@ -172,34 +184,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Iniciando proceso de logout");
         console.log("Estado de cookies antes de logout:", document.cookie);
         
-        const res = await fetch("/api/logout", {
-          method: "POST",
-          credentials: "include",
-        });
-        
-        if (!res.ok) {
-          const data = await res.json();
-          console.error("Error en respuesta del servidor durante logout:", data);
-          throw new Error(data.error || "Error al cerrar sesión");
-        }
+        // Usamos apiRequest para mantener consistencia en todas las peticiones
+        const res = await apiRequest("POST", "/api/logout");
         
         console.log("Logout exitoso en el servidor");
         console.log("Estado de cookies después de logout:", document.cookie);
         
         // Forzar limpieza manual de cookies en caso de que el servidor no lo haga
         document.cookie = "psiconnect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        document.cookie = "connect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
         document.cookie = "session_active=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
         
-        return res.json();
-      } catch (error) {
+        // No todos los endpoints devuelven JSON
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return await res.json();
+        }
+        return { success: true };
+      } catch (error: any) {
         // Incluso si hay error, intentamos limpiar la caché del cliente
         console.error("Error durante el proceso de logout:", error);
-        throw error;
+        throw new Error(error.message || "Error al cerrar sesión");
       } finally {
         console.log("Limpiando datos locales de sesión");
         // Limpiar toda la información de sesión del cliente
         localStorage.removeItem("lastKnownUser");
         localStorage.removeItem("sessionActive");
+        localStorage.removeItem("csrfToken");
         sessionStorage.removeItem("userSession");
       }
     },

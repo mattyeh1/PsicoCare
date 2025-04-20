@@ -2,8 +2,27 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    try {
+      // Intentar analizar como JSON primero
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const jsonError = await res.json();
+        if (jsonError.error) {
+          throw new Error(`${res.status}: ${jsonError.error}`);
+        }
+        throw new Error(`${res.status}: ${JSON.stringify(jsonError)}`);
+      }
+      
+      // Si no es JSON o no tiene campo 'error', usar texto plano
+      const text = await res.text() || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      // Si falla la extracción de texto, proporcionar un mensaje genérico
+      throw new Error(`${res.status}: Ocurrió un error en la solicitud`);
+    }
   }
 }
 
