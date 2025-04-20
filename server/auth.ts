@@ -29,19 +29,21 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  // Mejorar los ajustes de la sesión para mayor estabilidad
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "j5ts2B6nMVGsdnvbFzEZ",
-    resave: true, // Asegura que la sesión se guarde en cada petición
-    saveUninitialized: true, // Guarda sesiones nuevas/no inicializadas
+    resave: false, // Solo guardar la sesión si algo cambió
+    saveUninitialized: false, // No guardar sesiones vacías
     store: storage.sessionStore,
     cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 días
+      maxAge: 1000 * 60 * 60 * 24 * 14, // 14 días para mayor persistencia
       httpOnly: true,
       secure: process.env.NODE_ENV === "production" ? true : false,
       sameSite: 'lax',
       path: '/' // Asegura que la cookie sea válida para toda la aplicación
     },
-    rolling: true // Renovar la cookie en cada respuesta
+    rolling: true, // Renovar la cookie en cada respuesta
+    name: 'psiconnect.sid' // Nombre específico para evitar conflictos
   };
 
   app.set("trust proxy", 1);
@@ -66,21 +68,35 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => {
     // Serializar solo el ID del usuario para mayor seguridad
+    console.log(`Serializando usuario con ID: ${user.id}`);
     done(null, user.id);
   });
   
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log(`Intentando deserializar usuario con ID: ${id}`);
       const user = await storage.getUser(id);
+      
       if (!user) {
+        console.warn(`❌ Usuario ID ${id} no encontrado durante deserialización`);
         // Si el usuario no se encuentra, rechazar la deserialización
         return done(null, false);
       }
+      
+      // Actualizar timestamp de último login
+      try {
+        await storage.recordUserLogin(id);
+      } catch (updateErr) {
+        console.warn(`No se pudo actualizar último login para usuario ${id}:`, updateErr);
+        // Continuamos aunque falle la actualización del timestamp
+      }
+      
+      console.log(`✅ Usuario ID ${id} deserializado correctamente`);
       // Usuario encontrado, continuar
       done(null, user);
     } catch (err) {
       // Manejar errores durante la deserialización
-      console.error('Error al deserializar usuario:', err);
+      console.error(`❌ Error al deserializar usuario ID ${id}:`, err);
       done(err);
     }
   });
@@ -138,14 +154,22 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
+    console.log("GET /api/user - Estado de autenticación:", { 
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionID: req.sessionID
+    });
+    
     // Verificar autenticación
     if (!req.isAuthenticated() || !req.user) {
+      console.log("Usuario no autenticado en /api/user");
       return res.status(401).json({ error: "No autenticado" });
     }
     
     // Verificar que el usuario existe
     if (!req.user.id) {
+      console.warn("Sesión inválida: Usuario sin ID");
       // Sesión inválida, cerrarla
       req.logout((err) => {
         if (err) console.error('Error al cerrar sesión de usuario inválido:', err);
@@ -156,8 +180,33 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ error: "Sesión inválida" });
     }
     
-    // Omite el campo password en la respuesta
-    const { password, ...userWithoutPassword } = req.user;
-    res.json(userWithoutPassword);
+    try {
+      // Verificar que el usuario existe en la base de datos
+      const userId = req.user.id;
+      const freshUser = await storage.getUser(userId);
+      
+      if (!freshUser) {
+        console.warn(`Usuario ID ${userId} ya no existe en la base de datos`);
+        req.logout((err) => {
+          if (err) console.error(`Error al cerrar sesión de usuario que ya no existe:`, err);
+          req.session.destroy((err) => {
+            if (err) console.error(`Error al destruir sesión de usuario inexistente:`, err);
+          });
+        });
+        return res.status(401).json({ error: "Usuario no encontrado" });
+      }
+      
+      // Actualizar datos de sesión con los más recientes
+      req.user = freshUser;
+      
+      console.log(`Usuario ID ${userId} autenticado correctamente`);
+      
+      // Omite el campo password en la respuesta
+      const { password, ...userWithoutPassword } = freshUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error al verificar usuario:", error);
+      res.status(500).json({ error: "Error al verificar usuario" });
+    }
   });
 }
