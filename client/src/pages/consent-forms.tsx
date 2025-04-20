@@ -151,10 +151,24 @@ const ConsentForms = () => {
       setIsSigning(false);
       signForm.reset();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Error al firmar consentimiento:", error);
+      let errorMessage = "No se pudo firmar el consentimiento. Inténtalo de nuevo.";
+      
+      // Intentar extraer el mensaje de error específico si está disponible
+      try {
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (error.response) {
+          errorMessage = error.response.data?.message || errorMessage;
+        }
+      } catch (e) {
+        console.error("Error al procesar mensaje de error:", e);
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo firmar el consentimiento. Inténtalo de nuevo.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -172,12 +186,20 @@ const ConsentForms = () => {
 
   // Submit sign form
   const onSubmitSign = async (values: z.infer<typeof signConsentSchema>) => {
+    // Obtener el formulario seleccionado para extraer su versión
+    const selectedForm = consentForms?.find(f => f.id === parseInt(values.consent_form_id));
+    
     const signData = {
       patient_id: parseInt(values.patient_id),
       consent_form_id: parseInt(values.consent_form_id),
       signed_at: new Date().toISOString(),
       signature: values.signature,
+      // Añadir el campo requerido form_version
+      form_version: selectedForm?.version || "1.0",
     };
+    
+    // Registrar los datos que se envían para depuración
+    console.log("Enviando datos de consentimiento:", signData);
     
     signConsentMutation.mutate(signData);
   };
