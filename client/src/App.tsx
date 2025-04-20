@@ -15,6 +15,7 @@ import Profile from "@/pages/profile";
 import Appointments from "@/pages/appointments";
 import Messages from "@/pages/messages";
 import ConsentForms from "@/pages/consent-forms";
+import PatientDashboard from "@/pages/patient-dashboard";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -22,6 +23,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
 // Componente para rutas protegidas
+// Componente para rutas que requieren autenticación (cualquier tipo de usuario)
 function ProtectedRoute({ component: Component, ...rest }: { component: any, path: string }) {
   const { user, isAuthenticated, isLoading, refetchUser } = useAuth();
   
@@ -74,6 +76,62 @@ function ProtectedRoute({ component: Component, ...rest }: { component: any, pat
   return <Component />;
 }
 
+// Componente para rutas que requieren ser psicólogo
+function PsychologistRoute({ component: Component, ...rest }: { component: any, path: string }) {
+  const { user, isAuthenticated, isLoading, refetchUser } = useAuth();
+  
+  // Verificar si hay sesión almacenada localmente
+  const hasLocalSession = localStorage.getItem('sessionActive') === 'true' || 
+                          localStorage.getItem('lastKnownUser') !== null;
+  
+  // Efecto para forzar la recarga de datos de usuario al ingresar a una ruta protegida
+  useEffect(() => {    
+    const checkAuthentication = async () => {
+      if (refetchUser) {
+        try {
+          await refetchUser();
+          console.log("Refetch de usuario completado en ruta protegida para psicólogo");
+        } catch (err) {
+          console.error("Error al verificar la autenticación:", err);
+        }
+      }
+    };
+    
+    checkAuthentication();
+    
+    // Verificación periódica solo cuando está visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        checkAuthentication();
+      }
+    }, 30000); // Cada 30 segundos
+    
+    return () => clearInterval(interval);
+  }, [refetchUser, rest.path]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // Verificar autenticación
+  if (!isAuthenticated && !user && !hasLocalSession) {
+    console.log("Redirigiendo a login por falta de autenticación");
+    return <Redirect to="/login" />;
+  }
+  
+  // Verificar si el usuario es psicólogo
+  if (user && user.user_type !== 'psychologist') {
+    console.log("Acceso denegado: usuario no es psicólogo, redirigiendo a página de paciente");
+    return <Redirect to="/patient-dashboard" />;
+  }
+  
+  return <Component />;
+}
+
 function AppRoutes() {
   return (
     <Switch>
@@ -86,19 +144,22 @@ function AppRoutes() {
       {/* Mantener temporalmente la ruta antigua para compatibilidad */}
       <Route path="/register-old" component={Register} />
       <Route path="/dashboard">
-        <ProtectedRoute path="/dashboard" component={Dashboard} />
+        <PsychologistRoute path="/dashboard" component={Dashboard} />
+      </Route>
+      <Route path="/patient-dashboard">
+        <ProtectedRoute path="/patient-dashboard" component={PatientDashboard} />
       </Route>
       <Route path="/profile">
         <ProtectedRoute path="/profile" component={Profile} />
       </Route>
       <Route path="/appointments">
-        <ProtectedRoute path="/appointments" component={Appointments} />
+        <PsychologistRoute path="/appointments" component={Appointments} />
       </Route>
       <Route path="/messages">
-        <ProtectedRoute path="/messages" component={Messages} />
+        <PsychologistRoute path="/messages" component={Messages} />
       </Route>
       <Route path="/consent-forms">
-        <ProtectedRoute path="/consent-forms" component={ConsentForms} />
+        <PsychologistRoute path="/consent-forms" component={ConsentForms} />
       </Route>
       <Route component={NotFound} />
     </Switch>
