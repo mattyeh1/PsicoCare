@@ -13,7 +13,8 @@ import {
   Calendar, 
   MessageSquare, 
   FileText, 
-  LogOut 
+  LogOut,
+  ClipboardCheck
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -138,6 +139,15 @@ const Header = () => {
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <div 
+                          onClick={() => window.location.href = "/appointment-requests"}
+                          className="flex items-center gap-2 cursor-pointer w-full"
+                        >
+                          <ClipboardCheck className="h-4 w-4" />
+                          <span>Solicitudes de citas</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <div 
                           onClick={() => window.location.href = "/messages"}
                           className="flex items-center gap-2 cursor-pointer w-full"
                         >
@@ -236,6 +246,15 @@ const Header = () => {
                       }}
                     >
                       Citas
+                    </button>
+                    <button 
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        window.location.href = "/appointment-requests";
+                      }}
+                    >
+                      Solicitudes de citas
                     </button>
                     <button 
                       className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"

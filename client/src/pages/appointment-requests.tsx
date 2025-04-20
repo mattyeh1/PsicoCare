@@ -1,368 +1,445 @@
 import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
-  Loader2, 
-  MessageSquare, 
-  RefreshCcw, 
-  XCircle 
-} from 'lucide-react';
+import { Check, X, Clock, Calendar, Loader2, Search, Filter } from 'lucide-react';
+
+import { queryClient } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
 
+// Componente principal
 const AppointmentRequests = () => {
-  const { toast } = useToast();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [notes, setNotes] = useState("");
-  const [processingAppointmentId, setProcessingAppointmentId] = useState<number | null>(null);
+  const { toast } = useToast();
+  const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [approvalNotes, setApprovalNotes] = useState('');
 
-  // Obtener todas las citas
-  const { data: appointments, isLoading, refetch } = useQuery({
+  // Obtener las solicitudes de citas pendientes
+  const { data: appointments, isLoading: isLoadingAppointments, refetch: refetchAppointments } = useQuery({
     queryKey: ['/api/appointments'],
     enabled: !!user && user.user_type === 'psychologist',
   });
 
-  // Filtrar citas pendientes
-  const pendingAppointments = appointments?.filter(
-    (appointment: any) => appointment.status === 'pending'
-  ) || [];
+  // Obtener pacientes para mostrar sus nombres
+  const { data: patients, isLoading: isLoadingPatients } = useQuery({
+    queryKey: ['/api/patients'],
+    enabled: !!user && user.user_type === 'psychologist',
+  });
 
-  // Aprobar una cita
-  const handleApproveAppointment = async (appointmentId: number) => {
-    try {
-      setProcessingAppointmentId(appointmentId);
-      
-      const response = await fetch(`/api/appointments/${appointmentId}/status`, {
-        method: 'PUT',
+  // Mutación para aprobar una cita
+  const approveMutation = useMutation({
+    mutationFn: async (data: { id: number, notes?: string }) => {
+      const response = await fetch(`/api/appointments/${data.id}/approve`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          status: 'approved',
-          notes: notes || undefined
-        }),
+        body: JSON.stringify({ notes: data.notes }),
         credentials: 'include'
       });
-
-      if (response.ok) {
-        toast({
-          title: "Cita aprobada",
-          description: "La cita ha sido aprobada correctamente.",
-          variant: "success",
-          duration: 3000,
-        });
-        setNotes("");
-        // Refrescar las citas
-        queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
-      } else {
-        const error = await response.json();
-        throw new Error(error.message || "Error al aprobar la cita");
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al aprobar la cita');
       }
-    } catch (error) {
-      console.error("Error al aprobar cita:", error);
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cita aprobada",
+        description: "La solicitud ha sido aprobada exitosamente.",
+        duration: 3000,
+      });
+      
+      // Refrescar datos
+      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+      setSelectedAppointment(null);
+      setApprovalNotes('');
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "No se pudo aprobar la cita. Inténtalo de nuevo.",
+        description: error.message,
         variant: "destructive",
         duration: 5000,
       });
-    } finally {
-      setProcessingAppointmentId(null);
     }
-  };
+  });
 
-  // Rechazar una cita
-  const handleRejectAppointment = async (appointmentId: number) => {
-    try {
-      setProcessingAppointmentId(appointmentId);
-      
-      // Verificar que haya notas explicando el rechazo
-      if (!notes.trim()) {
-        toast({
-          title: "Se requieren notas",
-          description: "Por favor, proporciona un motivo para el rechazo de la cita.",
-          variant: "destructive",
-          duration: 5000,
-        });
-        setProcessingAppointmentId(null);
-        return;
-      }
-      
-      const response = await fetch(`/api/appointments/${appointmentId}/status`, {
-        method: 'PUT',
+  // Mutación para rechazar una cita
+  const rejectMutation = useMutation({
+    mutationFn: async (data: { id: number, reason: string }) => {
+      const response = await fetch(`/api/appointments/${data.id}/reject`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          status: 'rejected',
-          notes
-        }),
+        body: JSON.stringify({ reason: data.reason }),
         credentials: 'include'
       });
-
-      if (response.ok) {
-        toast({
-          title: "Cita rechazada",
-          description: "La cita ha sido rechazada correctamente.",
-          variant: "success",
-          duration: 3000,
-        });
-        setNotes("");
-        // Refrescar las citas
-        queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
-      } else {
-        const error = await response.json();
-        throw new Error(error.message || "Error al rechazar la cita");
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al rechazar la cita');
       }
-    } catch (error) {
-      console.error("Error al rechazar cita:", error);
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cita rechazada",
+        description: "La solicitud ha sido rechazada.",
+        duration: 3000,
+      });
+      
+      // Refrescar datos
+      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+      setSelectedAppointment(null);
+      setRejectionReason('');
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "No se pudo rechazar la cita. Inténtalo de nuevo.",
+        description: error.message,
         variant: "destructive",
         duration: 5000,
       });
-    } finally {
-      setProcessingAppointmentId(null);
     }
+  });
+
+  // Filtrar citas según el estado seleccionado y término de búsqueda
+  const filteredAppointments = React.useMemo(() => {
+    if (!appointments) return [];
+    
+    let filtered = [...appointments];
+    
+    // Aplicar filtro por estado
+    if (filter !== 'all') {
+      filtered = filtered.filter(app => app.status === filter);
+    }
+    
+    // Aplicar término de búsqueda (busca en notas y fecha)
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(app => {
+        // Buscar paciente relacionado
+        const patient = patients?.find(p => p.id === app.patient_id);
+        const patientName = patient?.name?.toLowerCase() || '';
+        
+        // Buscar en fecha (en formato legible)
+        const appDate = new Date(app.date);
+        const dateStr = format(appDate, 'EEEE d MMMM, yyyy HH:mm', { locale: es }).toLowerCase();
+        
+        // Buscar en notas
+        const notes = app.notes?.toLowerCase() || '';
+        
+        return patientName.includes(searchLower) || 
+               dateStr.includes(searchLower) || 
+               notes.includes(searchLower);
+      });
+    }
+    
+    // Ordenar por fecha: las más recientes primero
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [appointments, filter, searchTerm, patients]);
+
+  // Función para manejar la aprobación de una cita
+  const handleApprove = (appointment: any) => {
+    approveMutation.mutate({
+      id: appointment.id,
+      notes: approvalNotes.trim() || undefined
+    });
   };
 
-  if (isLoading) {
+  // Función para manejar el rechazo de una cita
+  const handleReject = (appointment: any) => {
+    if (!rejectionReason.trim()) {
+      toast({
+        title: "Se requiere un motivo",
+        description: "Por favor, indique el motivo del rechazo.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    rejectMutation.mutate({
+      id: appointment.id,
+      reason: rejectionReason
+    });
+  };
+
+  // Función para mostrar el nombre del paciente
+  const getPatientName = (patientId: number): string => {
+    if (!patients) return "Paciente";
+    
+    const patient = patients.find(p => p.id === patientId);
+    return patient ? patient.name : "Paciente";
+  };
+
+  // Mostrar interfaz de carga mientras se obtienen los datos
+  if (isLoadingAppointments || isLoadingPatients) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Cargando solicitudes de citas...</p>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container py-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col gap-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Solicitudes de citas</h1>
           <p className="text-muted-foreground">
-            Gestiona las solicitudes pendientes de tus pacientes
+            Gestiona las solicitudes de citas de tus pacientes
           </p>
         </div>
-        
-        <Button onClick={() => refetch()} variant="outline" size="sm">
-          <RefreshCcw className="h-4 w-4 mr-2" />
-          Actualizar
-        </Button>
-      </div>
 
-      <Tabs defaultValue="pending">
-        <TabsList className="mb-4">
-          <TabsTrigger value="pending">
-            Pendientes ({pendingAppointments.length})
-          </TabsTrigger>
-          <TabsTrigger value="all">
-            Todas ({appointments?.length || 0})
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="pending">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pendingAppointments.length > 0 ? (
-              pendingAppointments.map((appointment: any) => (
-                <Card key={appointment.id} className="relative">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">
-                          {format(new Date(appointment.date), 'EEEE d MMMM', { locale: es })}
-                        </CardTitle>
-                        <CardDescription>
-                          {format(new Date(appointment.date), 'h:mm a')} - {appointment.duration} min
-                        </CardDescription>
-                      </div>
-                      <div className="rounded-full px-2 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800">
-                        Pendiente
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pb-2">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Fecha solicitada</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(appointment.date), 'PPP', { locale: es })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2">
-                        <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Hora solicitada</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(appointment.date), 'h:mm a')} - Duración: {appointment.duration} min
-                          </p>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-2">
-                          <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                          <div className="w-full">
-                            <p className="text-sm font-medium">Notas para el paciente</p>
-                            <Textarea
-                              placeholder="Añade notas o instrucciones para el paciente (opcional para aprobar, obligatorio para rechazar)"
-                              value={notes}
-                              onChange={e => setNotes(e.target.value)}
-                              className="mt-1"
-                              rows={3}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter className="flex justify-between pt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-200 hover:bg-red-50 hover:text-red-600"
-                      onClick={() => handleRejectAppointment(appointment.id)}
-                      disabled={!!processingAppointmentId}
-                    >
-                      {processingAppointmentId === appointment.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <XCircle className="h-4 w-4 mr-2" />
-                      )}
-                      Rechazar
-                    </Button>
-                    
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleApproveAppointment(appointment.id)}
-                      disabled={!!processingAppointmentId}
-                    >
-                      {processingAppointmentId === appointment.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                      )}
-                      Aprobar
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full flex flex-col items-center justify-center p-8 border rounded-lg bg-slate-50">
-                <p className="text-muted-foreground text-center">
-                  No hay solicitudes de citas pendientes por revisar.
-                </p>
-              </div>
-            )}
+        <div className="flex flex-col gap-4">
+          {/* Filtros y búsqueda */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar por paciente, fecha o notas" 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select 
+                value={filter}
+                onValueChange={setFilter}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="pending">Pendientes</SelectItem>
+                  <SelectItem value="approved">Aprobadas</SelectItem>
+                  <SelectItem value="rejected">Rechazadas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="all">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {appointments?.length > 0 ? (
-              appointments.map((appointment: any) => (
-                <Card key={appointment.id} className="relative">
+
+          {/* Contenido principal */}
+          <div className="grid gap-4">
+            {filteredAppointments.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center h-64">
+                  <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium">No hay solicitudes de citas {filter !== 'all' ? `con estado "${filter}"` : ''}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {filter === 'pending' 
+                      ? 'No tienes solicitudes pendientes de revisión.'
+                      : 'Las solicitudes de citas aparecerán aquí cuando tus pacientes las realicen.'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredAppointments.map(appointment => (
+                <Card key={appointment.id} className={`overflow-hidden border-l-4 ${
+                  appointment.status === 'pending' ? 'border-l-yellow-500' :
+                  appointment.status === 'approved' ? 'border-l-green-500' :
+                  appointment.status === 'rejected' ? 'border-l-red-500' :
+                  'border-l-transparent'
+                }`}>
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-lg">
-                          {format(new Date(appointment.date), 'EEEE d MMMM', { locale: es })}
+                          {getPatientName(appointment.patient_id)}
                         </CardTitle>
                         <CardDescription>
-                          {format(new Date(appointment.date), 'h:mm a')} - {appointment.duration} min
+                          <div className="flex items-center gap-1 mt-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span className="capitalize">
+                              {format(new Date(appointment.date), "EEEE d 'de' MMMM, yyyy", { locale: es })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>
+                              {format(new Date(appointment.date), "HH:mm", { locale: es })} - 
+                              Duración: {appointment.duration} min
+                            </span>
+                          </div>
                         </CardDescription>
                       </div>
-                      <div className={`rounded-full px-2 py-1 text-xs font-semibold 
-                        ${appointment.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                          appointment.status === "approved" ? "bg-green-100 text-green-800" :
-                          appointment.status === "rejected" ? "bg-red-100 text-red-800" :
-                          appointment.status === "scheduled" ? "bg-blue-100 text-blue-800" :
-                          appointment.status === "completed" ? "bg-purple-100 text-purple-800" :
-                          appointment.status === "cancelled" ? "bg-slate-100 text-slate-800" :
-                          "bg-gray-100 text-gray-800"}`
+                      <Badge variant={
+                        appointment.status === 'pending' ? 'warning' :
+                        appointment.status === 'approved' ? 'success' : 
+                        appointment.status === 'rejected' ? 'destructive' : 
+                        'outline'
                       }>
-                        {appointment.status === "pending" ? "Pendiente" :
-                          appointment.status === "approved" ? "Aprobada" :
-                          appointment.status === "rejected" ? "Rechazada" :
-                          appointment.status === "scheduled" ? "Programada" : 
-                          appointment.status === "completed" ? "Completada" :
-                          appointment.status === "cancelled" ? "Cancelada" : 
-                          appointment.status === "missed" ? "Perdida" : "Desconocido"}
-                      </div>
+                        {appointment.status === 'pending' ? 'Pendiente' :
+                         appointment.status === 'approved' ? 'Aprobada' :
+                         appointment.status === 'rejected' ? 'Rechazada' :
+                         appointment.status === 'scheduled' ? 'Programada' :
+                         appointment.status === 'completed' ? 'Completada' :
+                         appointment.status === 'cancelled' ? 'Cancelada' :
+                         appointment.status === 'missed' ? 'Perdida' : 'Desconocido'}
+                      </Badge>
                     </div>
                   </CardHeader>
-                  
                   <CardContent className="pb-2">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Fecha</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(appointment.date), 'PPP', { locale: es })}
-                          </p>
-                        </div>
+                    {appointment.notes && (
+                      <div className="text-sm mt-2">
+                        <span className="font-medium">Notas:</span> {appointment.notes}
                       </div>
-
-                      <div className="flex items-start gap-2">
-                        <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Hora</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(appointment.date), 'h:mm a')} - Duración: {appointment.duration} min
-                          </p>
-                        </div>
-                      </div>
-
-                      {appointment.notes && (
+                    )}
+                  </CardContent>
+                  <CardFooter>
+                    <div className="flex gap-2 justify-end w-full">
+                      {appointment.status === 'pending' && (
                         <>
-                          <Separator />
-                          <div className="flex items-start gap-2">
-                            <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">Notas</p>
-                              <p className="text-sm text-muted-foreground">
-                                {appointment.notes}
-                              </p>
-                            </div>
-                          </div>
+                          {/* Diálogo de aprobación */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                onClick={() => setSelectedAppointment(appointment)}
+                              >
+                                <Check className="mr-1.5 h-4 w-4" />
+                                Aprobar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Aprobar solicitud de cita</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  ¿Estás seguro de que deseas aprobar esta solicitud de cita con {getPatientName(appointment.patient_id)} para el {format(new Date(appointment.date), "d 'de' MMMM 'a las' HH:mm", { locale: es })}?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <div className="py-4">
+                                <Label htmlFor="approval-notes">Notas adicionales (opcional)</Label>
+                                <Textarea
+                                  id="approval-notes"
+                                  placeholder="Añade instrucciones o información para el paciente..."
+                                  value={approvalNotes}
+                                  onChange={(e) => setApprovalNotes(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => {
+                                  setSelectedAppointment(null);
+                                  setApprovalNotes('');
+                                }}>
+                                  Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleApprove(appointment)}
+                                  disabled={approveMutation.isPending}
+                                >
+                                  {approveMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Procesando...
+                                    </>
+                                  ) : (
+                                    "Aprobar cita"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          {/* Diálogo de rechazo */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setSelectedAppointment(appointment)}
+                              >
+                                <X className="mr-1.5 h-4 w-4" />
+                                Rechazar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Rechazar solicitud de cita</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Estás rechazando la solicitud de cita con {getPatientName(appointment.patient_id)}. 
+                                  Por favor, indica el motivo para informar al paciente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <div className="py-4">
+                                <Label htmlFor="rejection-reason" className="text-right">
+                                  Motivo del rechazo (requerido)
+                                </Label>
+                                <Textarea
+                                  id="rejection-reason"
+                                  placeholder="Indica por qué no puedes atender esta cita..."
+                                  value={rejectionReason}
+                                  onChange={(e) => setRejectionReason(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => {
+                                  setSelectedAppointment(null);
+                                  setRejectionReason('');
+                                }}>
+                                  Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleReject(appointment)}
+                                  disabled={rejectMutation.isPending || !rejectionReason.trim()}
+                                >
+                                  {rejectMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Procesando...
+                                    </>
+                                  ) : (
+                                    "Rechazar cita"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </>
                       )}
                     </div>
-                  </CardContent>
+                  </CardFooter>
                 </Card>
               ))
-            ) : (
-              <div className="col-span-full flex flex-col items-center justify-center p-8 border rounded-lg bg-slate-50">
-                <p className="text-muted-foreground text-center">
-                  No hay citas registradas.
-                </p>
-              </div>
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 };

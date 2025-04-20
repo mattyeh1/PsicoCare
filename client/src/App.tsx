@@ -156,6 +156,9 @@ function AppRoutes() {
       <Route path="/appointments">
         <PsychologistRoute path="/appointments" component={Appointments} />
       </Route>
+      <Route path="/appointment-requests">
+        <PsychologistRoute path="/appointment-requests" component={AppointmentRequests} />
+      </Route>
       <Route path="/messages">
         <PsychologistRoute path="/messages" component={Messages} />
       </Route>
