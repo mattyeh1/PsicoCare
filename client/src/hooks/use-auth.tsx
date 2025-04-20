@@ -48,13 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    retry: 1, // Permitir un reintento en caso de error de red
+    retry: 2, // Aumentar reintentos en caso de error de red
     retryDelay: 1000, // Esperar 1 segundo antes de reintentar
     initialData: null,
-    staleTime: 2 * 60 * 1000, // 2 minutos antes de considerar los datos obsoletos (reducido)
-    refetchInterval: 2 * 60 * 1000, // Refrescar cada 2 minutos (más frecuente)
+    staleTime: 30 * 1000, // Reducir a 30 segundos para verificar más a menudo
+    refetchInterval: 60 * 1000, // Refrescar cada 1 minuto
     refetchIntervalInBackground: true,
-    refetchOnMount: true,
+    refetchOnMount: "always", // Siempre verificar al montar componentes
     refetchOnWindowFocus: true,
     refetchOnReconnect: true, // Importante: recargar al reconectar
   });

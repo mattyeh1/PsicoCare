@@ -104,7 +104,10 @@ const Messages = () => {
 
   // Verificar autenticación y redirigir si es necesario
   useEffect(() => {
-    if (!user && !userCheck) {
+    // Evitamos redirigir inmediatamente, esperamos a que termine la carga de user
+    if (!user && !userCheck && !isLoading) {
+      // Solo redirigimos si realmente no hay sesión activa
+      console.log("Estado de autenticación en messages:", { user, userCheck, isLoading });
       toast({
         title: "Sesión expirada o no iniciada",
         description: "Por favor, inicie sesión para acceder a esta sección",
@@ -112,7 +115,7 @@ const Messages = () => {
       });
       window.location.href = "/auth";
     }
-  }, [user, userCheck, toast]);
+  }, [user, userCheck, toast, isLoading]);
 
   // Fetch message templates with authentication handling
   const { data: templates, isLoading: templatesLoading } = useQuery<MessageTemplate[]>({
