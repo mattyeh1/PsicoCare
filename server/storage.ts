@@ -6,12 +6,13 @@ import {
   message_templates, MessageTemplate, InsertMessageTemplate,
   consent_forms, ConsentForm, InsertConsentForm,
   patient_consents, PatientConsent, InsertPatientConsent,
-  contact_requests, ContactRequest, InsertContactRequest
+  contact_requests, ContactRequest, InsertContactRequest,
+  messages, Message, InsertMessage
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, or, not, desc, asc, inArray } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
@@ -86,6 +87,7 @@ export class MemStorage implements IStorage {
   private appointments: Map<number, Appointment>;
   private availabilitySlots: Map<number, Availability>;
   private messageTemplates: Map<number, MessageTemplate>;
+  private messages: Map<number, Message>;
   private consentForms: Map<number, ConsentForm>;
   private patientConsents: Map<number, PatientConsent>;
   private contactRequests: Map<number, ContactRequest>;
@@ -95,6 +97,7 @@ export class MemStorage implements IStorage {
   private appointmentIdCounter: number;
   private availabilityIdCounter: number;
   private messageTemplateIdCounter: number;
+  private messageIdCounter: number;
   private consentFormIdCounter: number;
   private patientConsentIdCounter: number;
   private contactRequestIdCounter: number;
@@ -109,6 +112,7 @@ export class MemStorage implements IStorage {
     this.appointments = new Map();
     this.availabilitySlots = new Map();
     this.messageTemplates = new Map();
+    this.messages = new Map();
     this.consentForms = new Map();
     this.patientConsents = new Map();
     this.contactRequests = new Map();
@@ -118,6 +122,7 @@ export class MemStorage implements IStorage {
     this.appointmentIdCounter = 1;
     this.availabilityIdCounter = 1;
     this.messageTemplateIdCounter = 1;
+    this.messageIdCounter = 1;
     this.consentFormIdCounter = 1;
     this.patientConsentIdCounter = 1;
     this.contactRequestIdCounter = 1;
@@ -387,6 +392,102 @@ export class MemStorage implements IStorage {
     return newConsent;
   }
 
+  // Messages methods
+  async getMessage(id: number): Promise<Message | undefined> {
+    return this.messages.get(id);
+  }
+
+  async getMessagesForUser(userId: number, includeDeleted: boolean = false): Promise<Message[]> {
+    return Array.from(this.messages.values()).filter(message => {
+      if (!includeDeleted && (
+        (message.sender_id === userId && message.is_deleted_by_sender) || 
+        (message.recipient_id === userId && message.is_deleted_by_recipient)
+      )) {
+        return false;
+      }
+      return message.sender_id === userId || message.recipient_id === userId;
+    });
+  }
+
+  async getSentMessages(userId: number, includeDeleted: boolean = false): Promise<Message[]> {
+    return Array.from(this.messages.values()).filter(message => {
+      if (!includeDeleted && message.is_deleted_by_sender) {
+        return false;
+      }
+      return message.sender_id === userId;
+    });
+  }
+
+  async getReceivedMessages(userId: number, includeDeleted: boolean = false): Promise<Message[]> {
+    return Array.from(this.messages.values()).filter(message => {
+      if (!includeDeleted && message.is_deleted_by_recipient) {
+        return false;
+      }
+      return message.recipient_id === userId;
+    });
+  }
+
+  async getConversation(userOneId: number, userTwoId: number): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter(message => 
+        (message.sender_id === userOneId && message.recipient_id === userTwoId) ||
+        (message.sender_id === userTwoId && message.recipient_id === userOneId)
+      )
+      .filter(message => 
+        !(message.sender_id === userOneId && message.is_deleted_by_sender) &&
+        !(message.recipient_id === userOneId && message.is_deleted_by_recipient)
+      )
+      .sort((a, b) => a.sent_at.getTime() - b.sent_at.getTime());
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const id = this.messageIdCounter++;
+    const now = new Date();
+    
+    const newMessage: Message = {
+      ...message,
+      id,
+      sent_at: now,
+      read_at: null,
+      is_system_message: message.is_system_message || false,
+      is_deleted_by_sender: false,
+      is_deleted_by_recipient: false
+    };
+    
+    this.messages.set(id, newMessage);
+    return newMessage;
+  }
+
+  async markAsRead(messageId: number): Promise<Message> {
+    const message = this.messages.get(messageId);
+    if (!message) {
+      throw new Error("Message not found");
+    }
+    
+    const updatedMessage: Message = { ...message, read_at: new Date() };
+    this.messages.set(messageId, updatedMessage);
+    return updatedMessage;
+  }
+
+  async deleteMessage(messageId: number, deletedBy: number): Promise<void> {
+    const message = this.messages.get(messageId);
+    if (!message) {
+      throw new Error("Message not found");
+    }
+    
+    let updatedMessage = { ...message };
+    
+    if (deletedBy === message.sender_id) {
+      updatedMessage.is_deleted_by_sender = true;
+    } else if (deletedBy === message.recipient_id) {
+      updatedMessage.is_deleted_by_recipient = true;
+    } else {
+      throw new Error("User is not authorized to delete this message");
+    }
+    
+    this.messages.set(messageId, updatedMessage);
+  }
+
   // Contact request methods
   async createContactRequest(request: InsertContactRequest): Promise<ContactRequest> {
     const id = this.contactRequestIdCounter++;
@@ -616,6 +717,133 @@ export class DatabaseStorage implements IStorage {
     });
     
     return results;
+  }
+
+  // Messages methods
+  async getMessage(id: number): Promise<Message | undefined> {
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
+    return message;
+  }
+
+  async getMessagesForUser(userId: number, includeDeleted: boolean = false): Promise<Message[]> {
+    let query = db.select().from(messages).where(
+      or(
+        eq(messages.sender_id, userId),
+        eq(messages.recipient_id, userId)
+      )
+    );
+    
+    // Si no queremos incluir los mensajes eliminados por el usuario
+    if (!includeDeleted) {
+      query = query.where(
+        and(
+          or(
+            not(eq(messages.sender_id, userId)),
+            not(eq(messages.is_deleted_by_sender, true))
+          ),
+          or(
+            not(eq(messages.recipient_id, userId)),
+            not(eq(messages.is_deleted_by_recipient, true))
+          )
+        )
+      );
+    }
+    
+    return await query.orderBy(desc(messages.sent_at));
+  }
+
+  async getSentMessages(userId: number, includeDeleted: boolean = false): Promise<Message[]> {
+    let query = db.select().from(messages)
+      .where(eq(messages.sender_id, userId));
+    
+    if (!includeDeleted) {
+      query = query.where(eq(messages.is_deleted_by_sender, false));
+    }
+    
+    return await query.orderBy(desc(messages.sent_at));
+  }
+
+  async getReceivedMessages(userId: number, includeDeleted: boolean = false): Promise<Message[]> {
+    let query = db.select().from(messages)
+      .where(eq(messages.recipient_id, userId));
+    
+    if (!includeDeleted) {
+      query = query.where(eq(messages.is_deleted_by_recipient, false));
+    }
+    
+    return await query.orderBy(desc(messages.sent_at));
+  }
+
+  async getConversation(userOneId: number, userTwoId: number): Promise<Message[]> {
+    const conversation = await db.select().from(messages)
+      .where(
+        and(
+          or(
+            and(
+              eq(messages.sender_id, userOneId),
+              eq(messages.recipient_id, userTwoId),
+              eq(messages.is_deleted_by_sender, false)
+            ),
+            and(
+              eq(messages.sender_id, userTwoId),
+              eq(messages.recipient_id, userOneId),
+              eq(messages.is_deleted_by_recipient, false)
+            )
+          )
+        )
+      )
+      .orderBy(asc(messages.sent_at));
+    
+    return conversation;
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db.insert(messages)
+      .values({
+        ...message,
+        sent_at: new Date(),
+        is_deleted_by_sender: false,
+        is_deleted_by_recipient: false,
+        is_system_message: message.is_system_message || false
+      })
+      .returning();
+    
+    return newMessage;
+  }
+
+  async markAsRead(messageId: number): Promise<Message> {
+    const [updatedMessage] = await db.update(messages)
+      .set({ read_at: new Date() })
+      .where(eq(messages.id, messageId))
+      .returning();
+    
+    if (!updatedMessage) {
+      throw new Error("Message not found");
+    }
+    
+    return updatedMessage;
+  }
+
+  async deleteMessage(messageId: number, deletedBy: number): Promise<void> {
+    // Primero obtenemos el mensaje
+    const [message] = await db.select().from(messages).where(eq(messages.id, messageId));
+    
+    if (!message) {
+      throw new Error("Message not found");
+    }
+    
+    // Verificamos los permisos y actualizamos el campo correcto
+    if (deletedBy === message.sender_id) {
+      await db.update(messages)
+        .set({ is_deleted_by_sender: true })
+        .where(eq(messages.id, messageId));
+    } else if (deletedBy === message.recipient_id) {
+      await db.update(messages)
+        .set({ is_deleted_by_recipient: true })
+        .where(eq(messages.id, messageId));
+    } else {
+      throw new Error("User is not authorized to delete this message");
+    }
   }
 
   // Las declaraciones de caché ya están arriba, eliminamos la duplicación
