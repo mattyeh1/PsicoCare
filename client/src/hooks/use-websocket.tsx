@@ -13,7 +13,7 @@ type WebSocketHookOptions = {
 type ConnectionStatus = 'CONNECTING' | 'OPEN' | 'CLOSING' | 'CLOSED' | 'RECONNECTING';
 
 export const useWebSocket = (
-  url: string,
+  url: string | null,
   {
     onMessage,
     onOpen,
@@ -48,6 +48,13 @@ export const useWebSocket = (
   // Handle connection
   const connect = useCallback(() => {
     cleanup();
+
+    // Si la URL es nula, no intentamos conectar
+    if (!url) {
+      console.log('[WebSocket] No URL provided, not connecting');
+      setStatus('CLOSED');
+      return;
+    }
 
     try {
       // Create WebSocket connection with dynamic protocol
@@ -122,7 +129,11 @@ export const useWebSocket = (
 
   // Initial connect
   useEffect(() => {
-    connect();
+    // Solo intentar conectarse si estamos en un navegador
+    if (typeof window !== 'undefined') {
+      console.log('[WebSocket] Initializing WebSocket connection...');
+      connect();
+    }
     
     // Cleanup on unmount
     return () => {
@@ -130,6 +141,24 @@ export const useWebSocket = (
       cleanup();
     };
   }, [connect, cleanup]);
+  
+  // Reconectar si la pestaña vuelve a tener foco
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible' && socket.current?.readyState !== WebSocket.OPEN) {
+          console.log('[WebSocket] Page became visible again, reconnecting...');
+          connect();
+        }
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }
+  }, [connect]);
 
   return {
     status,

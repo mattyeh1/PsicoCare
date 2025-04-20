@@ -30,14 +30,16 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
   const [wsConnectionStatus, setWsConnectionStatus] = useState('');
   
   // Configure WebSocket connection
+  // Solo activar WebSocket si el usuario está autenticado
   const { 
     status: webSocketStatus, 
     sendMessage,
     isConnected: wsConnected
-  } = useWebSocket('/ws', {
+  } = useWebSocket(!!user ? '/ws' : null, {
     onOpen: () => {
       // Send authentication message when connection is established
-      if (user) {
+      if (user && user.id) {
+        console.log(`[WebSocket] Autenticando como usuario ID ${user.id}`);
         const authMsg = {
           type: 'auth',
           userId: user.id,
@@ -45,6 +47,8 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
         };
         sendMessage(authMsg);
         setWsConnectionStatus('connected');
+      } else {
+        console.log('[WebSocket] Usuario no autenticado, no se puede enviar la autenticación');
       }
     },
     onMessage: (data) => {
@@ -122,9 +126,15 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
             <div className="flex items-center">
               <CardTitle className="text-xl">Mensajes</CardTitle>
               {wsConnected ? (
-                <Wifi className="ml-2 h-4 w-4 text-green-500" title="Conectado" />
+                <div className="ml-2 flex items-center">
+                  <Wifi className="h-4 w-4 text-green-500" />
+                  <span className="ml-1 text-xs text-green-500">Conectado</span>
+                </div>
               ) : (
-                <WifiOff className="ml-2 h-4 w-4 text-gray-400" title="Desconectado" />
+                <div className="ml-2 flex items-center">
+                  <WifiOff className="h-4 w-4 text-gray-400" />
+                  <span className="ml-1 text-xs text-gray-400">Desconectado</span>
+                </div>
               )}
             </div>
             <CardDescription>
