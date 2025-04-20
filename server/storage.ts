@@ -764,14 +764,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReceivedMessages(userId: number, includeDeleted: boolean = false): Promise<Message[]> {
+    // Solo obtener mensajes donde el usuario es el destinatario (NO EL REMITENTE)
     let query = db.select().from(messages)
       .where(eq(messages.recipient_id, userId));
     
+    // Y no los mensajes que el destinatario ha eliminado
     if (!includeDeleted) {
       query = query.where(eq(messages.is_deleted_by_recipient, false));
     }
     
-    return await query.orderBy(desc(messages.sent_at));
+    console.log(`[Storage] Obteniendo mensajes recibidos para usuario #${userId}`);
+    const result = await query.orderBy(desc(messages.sent_at));
+    console.log(`[Storage] Mensajes recibidos: ${result.length}`, result);
+    
+    return result;
   }
 
   async getConversation(userOneId: number, userTwoId: number): Promise<Message[]> {
