@@ -30,6 +30,7 @@ export interface IStorage {
   
   // Patient methods
   getPatient(id: number): Promise<Patient | undefined>;
+  getPatientByUserId(userId: number): Promise<Patient | undefined>;
   getPatientsForPsychologist(psychologistId: number): Promise<Patient[]>;
   createPatient(patient: InsertPatient): Promise<Patient>;
   updatePatient(id: number, patient: Partial<InsertPatient>): Promise<Patient>;
@@ -215,6 +216,22 @@ export class MemStorage implements IStorage {
   // Patient methods
   async getPatient(id: number): Promise<Patient | undefined> {
     return this.patients.get(id);
+  }
+  
+  async getPatientByUserId(userId: number): Promise<Patient | undefined> {
+    // Buscar al paciente asociado con el ID del usuario
+    // En la implementación en memoria, podemos simular esta relación
+    const user = this.users.get(userId);
+    if (!user || user.user_type !== 'patient') {
+      return undefined;
+    }
+    
+    // Buscar un paciente que podría estar asociado a este usuario
+    // En un sistema real, habría una relación directa entre usuarios pacientes y pacientes
+    // Para esta simulación, buscamos un paciente con email similar
+    return Array.from(this.patients.values()).find(
+      patient => patient.email === user.email
+    );
   }
 
   async getPatientsForPsychologist(psychologistId: number): Promise<Patient[]> {
@@ -522,6 +539,29 @@ export class DatabaseStorage implements IStorage {
     
     if (patient) {
       this.patientCache.set(id, {
+        data: patient,
+        timestamp: Date.now()
+      });
+    }
+    
+    return patient;
+  }
+
+  async getPatientByUserId(userId: number): Promise<Patient | undefined> {
+    // Primero, obtener los datos del usuario para verificar que es paciente
+    const user = await this.getUser(userId);
+    if (!user || user.user_type !== 'patient') {
+      return undefined;
+    }
+    
+    // Buscar paciente donde email coincide con el del usuario
+    const [patient] = await db.select()
+      .from(patients)
+      .where(eq(patients.email, user.email));
+    
+    if (patient) {
+      // Actualizar caché
+      this.patientCache.set(patient.id, {
         data: patient,
         timestamp: Date.now()
       });

@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -9,7 +9,11 @@ import {
   insertMessageTemplateSchema,
   insertConsentFormSchema,
   insertPatientConsentSchema,
-  insertContactRequestSchema
+  insertContactRequestSchema,
+  users,
+  patients,
+  appointments,
+  availability
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -20,6 +24,8 @@ import {
   suggestMessageTemplateTitle,
   type MessageGenerationParams 
 } from "./services/openai";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -323,6 +329,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ message: "Contact request submitted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Error submitting contact request" });
+    }
+  });
+  
+  // Ruta para obtener las citas de un paciente
+  app.get("/api/my-appointments", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      
+      // Verificar que sea un paciente
+      if (userType !== 'patient') {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "Esta función está disponible solo para pacientes"
+        });
+      }
+      
+      // Obtener los datos del paciente para encontrar su información
+      const patient = await storage.getPatientByUserId(userId);
+      
+      if (!patient) {
+        return res.status(404).json({ 
+          error: "No encontrado", 
+          message: "No se encontró información de paciente asociada a tu cuenta"
+        });
+      }
+      
+      // Consultar la base de datos para obtener las citas del paciente
+      const patientAppointments = await db.select()
+        .from(appointments)
+        .where(eq(appointments.patient_id, patient.id))
+        .orderBy(appointments.date);
+      
+      res.json(patientAppointments);
+    } catch (error) {
+      console.error("Error al obtener citas del paciente:", error);
+      res.status(500).json({ 
+        error: "Error del servidor", 
+        message: "No se pudieron obtener las citas"
+      });
+    }
+  });
+  
+  // Ruta para que un paciente solicite una cita
+  app.post("/api/my-appointments", isAuthenticated, validateRequest(insertAppointmentSchema), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      
+      // Verificar que sea un paciente
+      if (userType !== 'patient') {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "Esta función está disponible solo para pacientes"
+        });
+      }
+      
+      // Obtener los datos del paciente para encontrar su información
+      const patient = await storage.getPatientByUserId(userId);
+      
+      if (!patient) {
+        return res.status(404).json({ 
+          error: "No encontrado", 
+          message: "No se encontró información de paciente asociada a tu cuenta"
+        });
+      }
+      
+      // Preparar los datos para la cita
+      const appointmentData = { 
+        ...req.body,
+        psychologist_id: patient.psychologist_id,
+        patient_id: patient.id,
+        status: "scheduled" // Por defecto, las citas nuevas están programadas
+      };
+      
+      // Crear la cita
+      const appointment = await storage.createAppointment(appointmentData);
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Error al crear cita:", error);
+      res.status(500).json({ 
+        error: "Error del servidor", 
+        message: "No se pudo crear la cita"
+      });
+    }
+  });
+
+  // Rutas específicas para pacientes
+  // Obtener el psicólogo asociado al paciente
+  app.get("/api/my-psychologist", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      
+      // Verificar que sea un paciente
+      if (userType !== 'patient') {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "Esta función está disponible solo para pacientes"
+        });
+      }
+      
+      // Obtener los datos del paciente para encontrar su psicólogo
+      const patient = await storage.getPatientByUserId(userId);
+      
+      if (!patient) {
+        return res.status(404).json({ 
+          error: "No encontrado", 
+          message: "No se encontró información de paciente asociada a tu cuenta"
+        });
+      }
+      
+      // Obtener información del psicólogo
+      const psychologist = await storage.getUser(patient.psychologist_id);
+      
+      if (!psychologist) {
+        return res.status(404).json({ 
+          error: "No encontrado", 
+          message: "No se encontró información del psicólogo asociado"
+        });
+      }
+      
+      // Eliminar la contraseña de la respuesta
+      const { password, ...psychologistData } = psychologist;
+      res.json(psychologistData);
+    } catch (error) {
+      console.error("Error al obtener psicólogo asociado:", error);
+      res.status(500).json({ 
+        error: "Error del servidor", 
+        message: "No se pudo obtener la información del psicólogo"
+      });
+    }
+  });
+  
+  // Obtener disponibilidad del psicólogo asociado al paciente
+  app.get("/api/my-psychologist/availability", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      
+      // Verificar que sea un paciente
+      if (userType !== 'patient') {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "Esta función está disponible solo para pacientes"
+        });
+      }
+      
+      // Obtener los datos del paciente para encontrar su psicólogo
+      const patient = await storage.getPatientByUserId(userId);
+      
+      if (!patient) {
+        return res.status(404).json({ 
+          error: "No encontrado", 
+          message: "No se encontró información de paciente asociada a tu cuenta"
+        });
+      }
+      
+      // Obtener disponibilidad del psicólogo
+      const availability = await storage.getAvailabilityForPsychologist(patient.psychologist_id);
+      res.json(availability);
+    } catch (error) {
+      console.error("Error al obtener disponibilidad del psicólogo:", error);
+      res.status(500).json({ 
+        error: "Error del servidor", 
+        message: "No se pudo obtener la disponibilidad del psicólogo"
+      });
     }
   });
 
