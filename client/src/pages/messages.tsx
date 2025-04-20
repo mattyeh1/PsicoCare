@@ -63,7 +63,7 @@ import {
   CheckCircle,
   Clock
 } from "lucide-react";
-import { MessageTemplate, Patient, Message } from "@shared/schema";
+import { MessageTemplate, Patient, Message, User } from "@shared/schema";
 import MessageTemplates from "@/components/messaging/MessageTemplates";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
@@ -193,7 +193,7 @@ const Messages = () => {
   });
   
   // Fetch received messages
-  const { data: receivedMessages, isLoading: receivedMessagesLoading } = useQuery({
+  const { data: receivedMessages, isLoading: receivedMessagesLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages/received"],
     enabled: !!user,
     retry: false,
@@ -201,7 +201,7 @@ const Messages = () => {
   });
   
   // Fetch sent messages
-  const { data: sentMessages, isLoading: sentMessagesLoading } = useQuery({
+  const { data: sentMessages, isLoading: sentMessagesLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages/sent"],
     enabled: !!user,
     retry: false,
