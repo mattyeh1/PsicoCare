@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -113,6 +113,16 @@ const ConsentForms = () => {
       signature: "",
     },
   });
+  
+  // Efecto para actualizar el formulario cuando se selecciona un formulario existente
+  useEffect(() => {
+    if (selectedForm && isCreating) {
+      form.reset({
+        title: selectedForm.title,
+        content: selectedForm.content
+      });
+    }
+  }, [selectedForm, form, isCreating]);
 
   // Create consent form mutation
   const createConsentFormMutation = useMutation({
@@ -550,10 +560,7 @@ const ConsentForms = () => {
                         size="sm"
                         onClick={() => {
                           setSelectedForm(form);
-                          form.reset({
-                            title: form.title,
-                            content: form.content,
-                          });
+                          // Usar el formulario de React Hook Form en lugar del objeto form
                           setIsCreating(true);
                         }}
                       >
