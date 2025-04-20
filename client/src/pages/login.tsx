@@ -37,10 +37,23 @@ const Login = () => {
     },
   });
 
+  // Obtener parámetros de redirección si existen
+  const params = new URLSearchParams(window.location.search);
+  const returnTo = params.get('returnTo') || '/dashboard';
+  
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log("Iniciando login con:", values.username);
+    console.log("Redirección después de login a:", returnTo);
+    
     loginMutation.mutate(values, {
       onSuccess: () => {
-        navigate("/dashboard");
+        // Esperar un momento para que la sesión se establezca completamente
+        setTimeout(() => {
+          console.log("Login exitoso, redirigiendo a:", returnTo);
+          // Usar window.location para forzar una recarga completa y asegurar que
+          // las cookies de sesión se envíen en todas las solicitudes subsiguientes
+          window.location.href = returnTo;
+        }, 300);
       }
     });
   };

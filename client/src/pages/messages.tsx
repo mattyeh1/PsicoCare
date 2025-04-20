@@ -107,27 +107,61 @@ const Messages = () => {
     // Solo verificamos el estado de autenticación una vez que la consulta ha terminado
     // y no estamos en un estado de carga
     if (!isLoading) {
-      console.log("Estado de autenticación en messages:", { 
+      // Agregar logging detallado para diagnóstico de la sesión
+      const sessionData = {
         user: !!user, 
         userCheck: !!userCheck, 
-        isLoading, 
+        isLoading,
         cookiesEnabled: navigator.cookieEnabled,
-        sessionCookie: document.cookie.includes("psiconnect")
-      });
+        hasSessionCookie: document.cookie.includes("connect.sid"),
+        documentCookie: document.cookie.length > 0 ? "presente" : "ausente",
+        userAgent: navigator.userAgent
+      };
+      
+      console.log("Estado de autenticación en messages:", sessionData);
       
       // Verificar si realmente no hay sesión después de intentar cargar
       if (!user && !userCheck) {
-        console.warn("No se detectó sesión de usuario. Redirigiendo a login.");
+        console.warn("No se detectó sesión de usuario. Preparando redirección a login.");
+        
+        // Construir URL con parámetro de redirección de retorno
+        const returnUrl = encodeURIComponent(window.location.pathname);
+        const loginUrl = `/login?returnTo=${returnUrl}`;
+        
+        console.log("URL de redirección construida:", loginUrl);
+        
+        // Mostrar mensaje error con posibilidad de reintentar
+        toast({
+          title: "Sesión expirada o no iniciada",
+          description: (
+            <div className="space-y-2">
+              <p>Se requiere iniciar sesión para acceder a esta sección.</p>
+              <div className="flex gap-2 mt-2 justify-end">
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={() => window.location.reload()}
+                >
+                  Reintentar
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => window.location.href = loginUrl}
+                >
+                  Iniciar sesión
+                </Button>
+              </div>
+            </div>
+          ),
+          variant: "destructive",
+          duration: 10000, // Mostrar por 10 segundos
+        });
         
         // Esperamos un momento para evitar redirecciones prematuras
         const redirectTimer = setTimeout(() => {
-          toast({
-            title: "Sesión expirada o no iniciada",
-            description: "Por favor, inicie sesión para acceder a esta sección",
-            variant: "destructive",
-          });
-          window.location.href = "/login";
-        }, 1000); // Esperar 1 segundo antes de redirigir
+          window.location.href = loginUrl;
+        }, 5000); // Esperar 5 segundos antes de redirigir automáticamente
         
         return () => clearTimeout(redirectTimer);
       }

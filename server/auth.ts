@@ -33,8 +33,16 @@ export function setupAuth(app: Express) {
   const isDev = process.env.NODE_ENV !== "production";
   console.log("Configurando sesión en modo:", isDev ? "DESARROLLO" : "PRODUCCIÓN");
   
+  // Generamos un secreto más fuerte
+  const sessionSecret = process.env.SESSION_SECRET || 
+                        randomBytes(32).toString('hex');
+  
+  // Crear un identificador de aplicación único para esta instancia                    
+  const appInstanceId = randomBytes(8).toString('hex');
+  console.log(`ID de instancia de aplicación: ${appInstanceId}`);
+  
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "j5ts2B6nMVGsdnvbFzEZ",
+    secret: sessionSecret,
     resave: true, // En desarrollo, mejor guardar siempre para asegurar persistencia
     saveUninitialized: true, // En desarrollo, guardar incluso sesiones sin inicializar
     store: storage.sessionStore,
@@ -43,10 +51,11 @@ export function setupAuth(app: Express) {
       httpOnly: true,
       secure: false, // En desarrollo, no usar secure para permitir HTTP
       sameSite: 'lax',
-      path: '/' // Asegura que la cookie sea válida para toda la aplicación
+      path: '/', // Asegura que la cookie sea válida para toda la aplicación
+      domain: undefined // Permitir cualquier dominio en desarrollo
     },
     rolling: true, // Renovar la cookie en cada respuesta
-    name: 'psiconnect.sid' // Nombre específico para evitar conflictos
+    name: 'connect.sid' // Usar nombre estándar para mayor compatibilidad
   };
 
   app.set("trust proxy", 1);
@@ -199,7 +208,7 @@ export function setupAuth(app: Express) {
         }
         
         // Limpiar todas las cookies
-        res.clearCookie('psiconnect.sid', { path: '/' });
+        res.clearCookie('connect.sid', { path: '/' });
         res.clearCookie('session_active', { path: '/' });
         
         console.log("Sesión destruida y cookies eliminadas");

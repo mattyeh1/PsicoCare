@@ -373,11 +373,20 @@ export class DatabaseStorage implements IStorage {
     const PostgresStore = new PostgresSessionStore({ 
       pool,
       tableName: 'session',
-      createTableIfMissing: true 
+      createTableIfMissing: true,
+      // Configuración adicional para mejorar el rendimiento y confiabilidad
+      ttl: 60 * 60 * 24 * 30, // 30 días en segundos
+      pruneSessionInterval: 60 * 15, // Limpiar sesiones expiradas cada 15 minutos
+      errorLog: (err) => console.error('Error en PostgresSessionStore:', err)
     });
     
     // Asegurarse de que la tabla de sesiones se crea
     this.sessionStore = PostgresStore;
+    
+    // Configurar eventos para monitor de sesión
+    PostgresStore.on('error', (error) => {
+      console.error('Error crítico en almacenamiento de sesiones:', error);
+    });
   }
 
   // Cache para mejorar el rendimiento
