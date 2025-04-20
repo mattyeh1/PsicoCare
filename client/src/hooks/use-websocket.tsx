@@ -129,23 +129,18 @@ export const useWebSocket = (
 
   // Initial connect
   useEffect(() => {
-    let isSubscribed = true;
-
-    const initializeWebSocket = async () => {
-      if (typeof window !== 'undefined' && url && !socket.current && isSubscribed) {
-        cleanup(); // Limpiar conexión existente si hay
-        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeña pausa
-        connect();
-      }
-    };
-
-    initializeWebSocket();
+    // Solo intentar conectarse si estamos en un navegador
+    if (typeof window !== 'undefined') {
+      console.log('[WebSocket] Initializing WebSocket connection...');
+      connect();
+    }
     
+    // Cleanup on unmount
     return () => {
-      isSubscribed = false;
+      console.log('[WebSocket] Disconnecting...');
       cleanup();
     };
-  }, [url]);
+  }, [connect, cleanup]);
   
   // Reconectar si la pestaña vuelve a tener foco
   useEffect(() => {

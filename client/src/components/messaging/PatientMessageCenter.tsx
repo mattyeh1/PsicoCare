@@ -95,20 +95,15 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
 
   // Send auth message when user changes
   useEffect(() => {
-    const sendAuthMessage = () => {
-      if (wsConnected && user && !isLoading) {
-        const authMsg = {
-          type: 'auth',
-          userId: user.id,
-          userType: user.user_type
-        };
-        sendMessage(authMsg);
-      }
-    };
-
-    const timeoutId = setTimeout(sendAuthMessage, 500);
-    return () => clearTimeout(timeoutId);
-  }, [wsConnected, user, sendMessage, isLoading]);
+    if (wsConnected && user) {
+      const authMsg = {
+        type: 'auth',
+        userId: user.id,
+        userType: user.user_type
+      };
+      sendMessage(authMsg);
+    }
+  }, [wsConnected, user, sendMessage]);
   
   // Fetch received messages
   const { 
