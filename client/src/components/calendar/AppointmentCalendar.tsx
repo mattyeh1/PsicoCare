@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Appointment } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Patient } from "@shared/schema";
+import CalendarExportMenu from "./CalendarExportMenu";
 
 // Setup the localizer
 moment.locale("es");
@@ -289,12 +290,18 @@ const AppointmentCalendar = ({ appointments, loading }: AppointmentCalendarProps
                 </div>
               )}
             </div>
-            <a 
-              href={`/appointments?appointment=${selectedEvent.id}`} 
-              className="text-xs text-primary hover:underline"
-            >
-              Editar cita
-            </a>
+            <div className="flex items-center gap-2">
+              {/* Componente de exportación de calendario */}
+              {(selectedEvent.status === 'scheduled' || selectedEvent.status === 'approved') && (
+                <CalendarExportMenu appointmentId={selectedEvent.id} buttonStyle="icon" />
+              )}
+              <a 
+                href={`/appointments?appointment=${selectedEvent.id}`} 
+                className="text-xs text-primary hover:underline"
+              >
+                Editar cita
+              </a>
+            </div>
           </div>
         </div>
       )}
