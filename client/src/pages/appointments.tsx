@@ -265,11 +265,13 @@ const Appointments = () => {
 
   // Filter appointments by status
   const upcomingAppointments = appointments?.filter(
-    (appointment) => new Date(appointment.date) >= new Date() && appointment.status === 'scheduled'
+    (appointment) => new Date(appointment.date) >= new Date() && 
+      (appointment.status === 'scheduled' || appointment.status === 'approved' || appointment.status === 'pending')
   ) || [];
   
   const pastAppointments = appointments?.filter(
-    (appointment) => new Date(appointment.date) < new Date() || appointment.status !== 'scheduled'
+    (appointment) => new Date(appointment.date) < new Date() || 
+      (appointment.status !== 'scheduled' && appointment.status !== 'approved' && appointment.status !== 'pending')
   ) || [];
 
   // Get patient name by id
@@ -295,9 +297,25 @@ const Appointments = () => {
         return <Badge className="bg-red-100 text-red-800">Cancelada</Badge>;
       case 'missed':
         return <Badge className="bg-yellow-100 text-yellow-800">Ausente</Badge>;
+      case 'pending':
+        return <Badge className="bg-orange-100 text-orange-800">Pendiente</Badge>;
+      case 'approved':
+        return <Badge className="bg-cyan-100 text-cyan-800">Aprobada</Badge>;
       default:
         return <Badge>Desconocido</Badge>;
     }
+  };
+  
+  // Renderizar el botón de exportación a calendario junto con el estado
+  const renderStatusWithExport = (appointment: Appointment) => {
+    return (
+      <div className="flex items-center gap-2">
+        {(appointment.status === 'scheduled' || appointment.status === 'approved' || appointment.status === 'pending') && (
+          <CalendarExportMenu appointmentId={appointment.id} buttonStyle="icon" iconSize={16} />
+        )}
+        {getStatusBadge(appointment.status)}
+      </div>
+    );
   };
 
   return (
