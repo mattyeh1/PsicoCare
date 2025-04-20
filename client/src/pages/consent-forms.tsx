@@ -140,7 +140,21 @@ const ConsentForms = () => {
   // Sign consent form mutation
   const signConsentMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/patient-consents", data);
+      // Convierte el objeto Date a ISO string para enviar al servidor
+      const processedData = {
+        ...data,
+        signed_at: data.signed_at.toISOString(),
+      };
+      
+      console.log("Datos procesados a enviar:", processedData);
+      
+      try {
+        const response = await apiRequest("POST", "/api/patient-consents", processedData);
+        return response.json();
+      } catch (error) {
+        console.error("Error en mutación de consentimiento:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -159,8 +173,10 @@ const ConsentForms = () => {
       try {
         if (error instanceof Error) {
           errorMessage = error.message;
-        } else if (error.response) {
-          errorMessage = error.response.data?.message || errorMessage;
+        } else if (error.response && error.response.data) {
+          errorMessage = error.response.data.message || errorMessage;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
         }
       } catch (e) {
         console.error("Error al procesar mensaje de error:", e);
@@ -189,10 +205,14 @@ const ConsentForms = () => {
     // Obtener el formulario seleccionado para extraer su versión
     const selectedForm = consentForms?.find(f => f.id === parseInt(values.consent_form_id));
     
+    // Crear un objeto Date para signed_at en lugar de un string
+    const now = new Date();
+    
     const signData = {
       patient_id: parseInt(values.patient_id),
       consent_form_id: parseInt(values.consent_form_id),
-      signed_at: new Date().toISOString(),
+      // Enviar como Date directamente, no como string
+      signed_at: now,
       signature: values.signature,
       // Añadir el campo requerido form_version
       form_version: selectedForm?.version || "1.0",
