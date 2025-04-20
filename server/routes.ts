@@ -174,9 +174,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointments", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const appointments = await storage.getAppointmentsForPsychologist(userId);
-      res.json(appointments);
+      
+      // Mejorado para consultar directamente de la base de datos para asegurar que se muestran todas las citas
+      const queryResult = await db.select()
+        .from(appointments)
+        .where(eq(appointments.psychologist_id, userId))
+        .orderBy(appointments.date);
+      
+      console.log(`Psicólogo #${userId} consultando citas. Encontradas: ${queryResult.length}`);
+      
+      // Si hay algún filtro de estado en la consulta, se puede aplicar aquí
+      const statusFilter = req.query.status as string | undefined;
+      let filteredResults = queryResult;
+      
+      if (statusFilter && statusFilter !== 'all') {
+        filteredResults = queryResult.filter(appointment => appointment.status === statusFilter);
+        console.log(`  Filtrado por estado '${statusFilter}': ${filteredResults.length} citas`);
+      }
+      
+      res.json(filteredResults);
     } catch (error) {
+      console.error("Error al obtener citas:", error);
       res.status(500).json({ message: "Error fetching appointments" });
     }
   });
@@ -252,6 +270,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error al actualizar el estado de la cita:", error);
       res.status(500).json({ message: "Error al actualizar el estado de la cita" });
+    }
+  });
+  
+  // Endpoints específicos para aprobar/rechazar citas (para trabajar con el frontend existente)
+  app.post("/api/appointments/:id/approve", isAuthenticated, isPsychologist, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const appointmentId = parseInt(req.params.id);
+      const { notes } = req.body;
+      
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar que la cita pertenece a este psicólogo
+      if (appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para modificar esta cita" });
+      }
+      
+      // La cita debe estar en estado "pending" para poder ser aprobada
+      if (appointment.status !== 'pending') {
+        return res.status(400).json({ 
+          message: "No es posible aprobar una cita que no está pendiente" 
+        });
+      }
+      
+      // Actualizar el estado de la cita y añadir notas si existen
+      const updatedData: any = { status: 'approved' };
+      if (notes) updatedData.notes = notes;
+      
+      const updatedAppointment = await storage.updateAppointment(appointmentId, updatedData);
+      
+      console.log(`Cita #${appointmentId} aprobada por psicólogo #${userId}`);
+      res.json(updatedAppointment);
+    } catch (error) {
+      console.error("Error al aprobar la cita:", error);
+      res.status(500).json({ message: "Error al aprobar la cita" });
+    }
+  });
+  
+  app.post("/api/appointments/:id/reject", isAuthenticated, isPsychologist, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const appointmentId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ message: "Se requiere indicar un motivo para rechazar la cita" });
+      }
+      
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar que la cita pertenece a este psicólogo
+      if (appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para modificar esta cita" });
+      }
+      
+      // La cita debe estar en estado "pending" para poder ser rechazada
+      if (appointment.status !== 'pending') {
+        return res.status(400).json({ 
+          message: "No es posible rechazar una cita que no está pendiente" 
+        });
+      }
+      
+      // Actualizar el estado de la cita y añadir el motivo del rechazo
+      const updatedAppointment = await storage.updateAppointment(appointmentId, { 
+        status: 'rejected',
+        notes: reason 
+      });
+      
+      console.log(`Cita #${appointmentId} rechazada por psicólogo #${userId}: ${reason}`);
+      res.json(updatedAppointment);
+    } catch (error) {
+      console.error("Error al rechazar la cita:", error);
+      res.status(500).json({ message: "Error al rechazar la cita" });
     }
   });
 
