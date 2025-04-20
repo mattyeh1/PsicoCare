@@ -60,6 +60,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppointmentCalendar from "@/components/calendar/AppointmentCalendar";
 import TimeSlots from "@/components/calendar/TimeSlots";
 import CalendarExportMenu from "@/components/calendar/CalendarExportMenu";
+import AppointmentCard from "@/components/calendar/AppointmentCard";
 import { cn } from "@/lib/utils";
 import { Appointment, Patient, Availability } from "@shared/schema";
 
@@ -696,83 +697,14 @@ const Appointments = () => {
                     {upcomingAppointments
                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                       .map((appointment) => (
-                        <Card key={appointment.id} className="overflow-hidden">
-                          <div className="flex flex-col sm:flex-row">
-                            <div className="sm:w-24 bg-primary-50 flex flex-col items-center justify-center p-4 text-center">
-                              <span className="text-sm font-medium text-primary-800">
-                                {format(new Date(appointment.date), "EEE", { locale: es })}
-                              </span>
-                              <span className="text-2xl font-bold text-primary-800">
-                                {format(new Date(appointment.date), "dd", { locale: es })}
-                              </span>
-                              <span className="text-sm text-primary-800">
-                                {format(new Date(appointment.date), "MMM", { locale: es })}
-                              </span>
-                            </div>
-                            <div className="flex-1 p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h3 className="text-lg font-medium">
-                                    {getPatientName(appointment.patient_id)}
-                                  </h3>
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Clock className="h-4 w-4" />
-                                    <span>
-                                      {format(new Date(appointment.date), "HH:mm", { locale: es })} - 
-                                      {format(addMinutes(new Date(appointment.date), appointment.duration), "HH:mm", { locale: es })}
-                                    </span>
-                                    <span className="mx-1">•</span>
-                                    <span>{appointment.duration} minutos</span>
-                                  </div>
-                                </div>
-                                <div>{getStatusBadge(appointment.status)}</div>
-                              </div>
-                              {appointment.notes && (
-                                <p className="text-sm mt-2 text-muted-foreground">
-                                  {appointment.notes}
-                                </p>
-                              )}
-                              <div className="mt-4 flex flex-wrap gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => updateAppointmentStatusMutation.mutate({ 
-                                    id: appointment.id, 
-                                    status: 'completed' 
-                                  })}
-                                  disabled={updateAppointmentStatusMutation.isPending}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Completada
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => updateAppointmentStatusMutation.mutate({ 
-                                    id: appointment.id, 
-                                    status: 'cancelled' 
-                                  })}
-                                  disabled={updateAppointmentStatusMutation.isPending}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Cancelar
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => updateAppointmentStatusMutation.mutate({ 
-                                    id: appointment.id, 
-                                    status: 'missed' 
-                                  })}
-                                  disabled={updateAppointmentStatusMutation.isPending}
-                                >
-                                  <AlertCircle className="h-4 w-4 mr-1" />
-                                  Ausente
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
+                        <AppointmentCard
+                          key={appointment.id}
+                          appointment={appointment}
+                          getPatientName={getPatientName}
+                          onUpdateStatus={(id, status) => 
+                            updateAppointmentStatusMutation.mutate({ id, status })}
+                          isPending={updateAppointmentStatusMutation.isPending}
+                        />
                       ))}
                   </div>
                 )}
@@ -800,57 +732,15 @@ const Appointments = () => {
                     {pastAppointments
                       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                       .map((appointment) => (
-                        <Card key={appointment.id} className="overflow-hidden">
-                          <div className="flex flex-col sm:flex-row">
-                            <div className={`sm:w-24 flex flex-col items-center justify-center p-4 text-center ${
-                              appointment.status === 'completed' ? 'bg-green-50' : 
-                              appointment.status === 'cancelled' ? 'bg-red-50' : 'bg-yellow-50'
-                            }`}>
-                              <span className={`text-sm font-medium ${
-                                appointment.status === 'completed' ? 'text-green-800' : 
-                                appointment.status === 'cancelled' ? 'text-red-800' : 'text-yellow-800'
-                              }`}>
-                                {format(new Date(appointment.date), "EEE", { locale: es })}
-                              </span>
-                              <span className={`text-2xl font-bold ${
-                                appointment.status === 'completed' ? 'text-green-800' : 
-                                appointment.status === 'cancelled' ? 'text-red-800' : 'text-yellow-800'
-                              }`}>
-                                {format(new Date(appointment.date), "dd", { locale: es })}
-                              </span>
-                              <span className={`text-sm ${
-                                appointment.status === 'completed' ? 'text-green-800' : 
-                                appointment.status === 'cancelled' ? 'text-red-800' : 'text-yellow-800'
-                              }`}>
-                                {format(new Date(appointment.date), "MMM", { locale: es })}
-                              </span>
-                            </div>
-                            <div className="flex-1 p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h3 className="text-lg font-medium">
-                                    {getPatientName(appointment.patient_id)}
-                                  </h3>
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Clock className="h-4 w-4" />
-                                    <span>
-                                      {format(new Date(appointment.date), "HH:mm", { locale: es })} - 
-                                      {format(addMinutes(new Date(appointment.date), appointment.duration), "HH:mm", { locale: es })}
-                                    </span>
-                                    <span className="mx-1">•</span>
-                                    <span>{appointment.duration} minutos</span>
-                                  </div>
-                                </div>
-                                <div>{getStatusBadge(appointment.status)}</div>
-                              </div>
-                              {appointment.notes && (
-                                <p className="text-sm mt-2 text-muted-foreground">
-                                  {appointment.notes}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </Card>
+                        <AppointmentCard
+                          key={appointment.id}
+                          appointment={appointment}
+                          getPatientName={getPatientName}
+                          onUpdateStatus={(id, status) => 
+                            updateAppointmentStatusMutation.mutate({ id, status })}
+                          isPending={updateAppointmentStatusMutation.isPending}
+                          isPast={true}
+                        />
                       ))}
                   </div>
                 )}
