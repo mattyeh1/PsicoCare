@@ -1,237 +1,133 @@
-# PsiConnect: Plataforma para Psicólogos
+# PsiConnect: Plataforma de Gestión para Psicólogos
 
-PsiConnect es una plataforma minimalista diseñada específicamente para psicólogos, enfocada en la gestión eficiente de pacientes, citas, comunicaciones y documentación.
+PsiConnect es una plataforma integral diseñada específicamente para profesionales de la psicología, enfocada en optimizar la gestión de pacientes, citas y comunicaciones a través de una interfaz moderna e intuitiva.
 
-## Características Actuales ✅
+## 📱 Características Principales
 
-- **Gestión de Pacientes**: 
-  - Registro y seguimiento de pacientes
-  - Historial de citas
-  - Notas y observaciones
+### Experiencia del Psicólogo
+- **Dashboard completo** con resumen de citas, pacientes y mensajes pendientes
+- **Gestión de pacientes** con historial clínico, notas y seguimiento
+- **Agenda inteligente** con calendario interactivo y gestión de disponibilidad
+- **Generación asistida de mensajes** con plantillas personalizables
+- **Formularios digitales** para consentimientos, evaluaciones y seguimiento
+- **Reportes y estadísticas** para análisis de práctica profesional
 
-- **Agenda de Citas**: 
-  - Calendario interactivo
-  - Gestión de disponibilidad
-  - Confirmaciones automáticas
+### Experiencia del Paciente
+- **Portal personalizado** con acceso a citas programadas
+- **Mensajería segura** para comunicación directa con su psicólogo
+- **Recordatorios automáticos** de citas y seguimientos
+- **Visualización de historial** de sesiones y documentos compartidos
+- **Formularios digitales** para completar antes de las sesiones
 
-- **Sistema de Mensajes**:
-  - Plantillas personalizables
-  - Comunicación segura
-  - Notificaciones
+### Comunicación en Tiempo Real
+- **Sistema de mensajería instantánea** mediante WebSockets
+- **Notificaciones en tiempo real** de nuevos mensajes y actualizaciones
+- **Diferenciación de tipos de mensajes** para mejor organización
+- **Panel de chat intuitivo** con pestañas de mensajes enviados y recibidos
 
-- **Documentación Digital**:
-  - Formularios de consentimiento
-  - Firma digital
-  - Almacenamiento seguro
+## 🛠️ Arquitectura Tecnológica
 
-- **Interfaz Responsiva**:
-  - Diseño adaptable a todos los dispositivos
-  - Experiencia de usuario optimizada
-  - Navegación intuitiva
+### Frontend
+- **React 18** con TypeScript
+- **TailwindCSS** para estilos responsivos
+- **Shadcn UI** para componentes consistentes
+- **TanStack Query** para gestión eficiente de estado y caché
+- **WebSockets** para comunicación en tiempo real
 
-## Tecnologías Utilizadas
+### Backend
+- **Express.js** con arquitectura RESTful
+- **WebSocket Server** para mensajería instantánea
+- **Sistema de autenticación** basado en sesiones con Passport.js
+- **Validación de datos** con Zod y TypeScript
 
-- **Frontend**: 
-  - React con TypeScript
-  - TailwindCSS para estilos
-  - Shadcn UI para componentes
-  - TanStack Query para gestión de estado
+### Base de Datos
+- **PostgreSQL** con modelo relacional optimizado
+- **Drizzle ORM** para interacción tipo-segura con la base de datos
+- **Caché integrada** para consultas frecuentes
+- **Migraciones automatizadas** para evolución del esquema
 
-- **Backend**: 
-  - Express.js
-  - Node.js
-  - Sistema de sesiones seguro
-
-- **Base de Datos**: 
-  - PostgreSQL
-  - Drizzle ORM
-
-## Inicio Rápido
-
-1. **Instalación de dependencias**:
-```bash
-npm install
-```
-
-2. **Configuración de la base de datos**:
-```bash
-npm run db:push
-```
-
-3. **Iniciar el servidor de desarrollo**:
-```bash
-npm run dev
-```
-
-## Estructura del Proyecto
+## 🔧 Estructura del Proyecto
 
 ```
-├── client/          # Frontend React
-│   ├── src/
-│   │   ├── components/  # Componentes UI
-│   │   ├── hooks/      # Custom hooks
-│   │   ├── pages/      # Páginas
-│   │   └── providers/  # Contextos
-├── server/          # Backend Express
-│   ├── services/    # Servicios
-│   └── routes.ts    # Rutas API
-└── shared/          # Código compartido
-```
-
-## Características en Desarrollo 🚧
-
-- Integración con IA para mensajes
-- Sistema de notificaciones
-- Reportes y estadísticas
-- Sesiones remotas
-- Mejoras de seguridad
-
-## Licencia
-
-Este proyecto está bajo la licencia MIT.
-
-## Esquema de la Base de Datos
-### Tablas
-
-1. **users** (psicólogos):
-   - id (serial, primary key)
-   - username (texto, único)
-   - password (texto)
-   - email (texto, único)
-   - full_name (texto)
-   - specialty (texto)
-   - bio (texto, opcional)
-   - education (texto, opcional)
-   - certifications (texto, opcional)
-   - profile_image (texto, opcional)
-
-2. **patients**:
-   - id (serial, primary key)
-   - psychologist_id (referencia a users.id)
-   - name (texto)
-   - email (texto)
-   - phone (texto, opcional)
-   - notes (texto, opcional)
-
-3. **appointments**:
-   - id (serial, primary key)
-   - psychologist_id (referencia a users.id)
-   - patient_id (referencia a patients.id)
-   - date (timestamp)
-   - duration (minutos)
-   - status (enum: scheduled/completed/cancelled/missed)
-   - notes (texto, opcional)
-
-4. **availability**:
-   - id (serial, primary key)
-   - psychologist_id (referencia a users.id)
-   - day_of_week (0-6 para domingo-sábado)
-   - start_time (formato HH:MM)
-   - end_time (formato HH:MM)
-
-5. **message_templates**:
-   - id (serial, primary key)
-   - psychologist_id (referencia a users.id)
-   - type (enum: appointment_reminder/follow_up/welcome/cancellation/rescheduling/custom)
-   - title (texto)
-   - content (texto)
-
-6. **consent_forms**:
-   - id (serial, primary key)
-   - psychologist_id (referencia a users.id)
-   - title (texto)
-   - content (texto)
-
-7. **patient_consents**:
-   - id (serial, primary key)
-   - patient_id (referencia a patients.id)
-   - consent_form_id (referencia a consent_forms.id)
-   - signed_at (timestamp)
-   - signature (texto)
-
-8. **contact_requests**:
-   - id (serial, primary key)
-   - name (texto)
-   - email (texto)
-   - specialty (texto)
-   - message (texto, opcional)
-   - created_at (timestamp con valor por defecto)
-
-## Guía de Inicio Rápido
-
-### Requisitos Previos
-
-- Node.js 18+ instalado
-- Una cuenta en Replit o entorno local configurado
-
-### Instalación
-
-1. Clona el repositorio:
-   ```
-   git clone <URL-del-repositorio>
-   ```
-
-2. Instala las dependencias:
-   ```
-   npm install
-   ```
-
-3. Crea una base de datos PostgreSQL y configura las variables de entorno.
-
-4. Inicia la aplicación:
-   ```
-   npm run dev
-   ```
-
-### Estructura de Archivos
-
-```
-├── client/                # Frontend React
+├── client/                # Aplicación React (Frontend)
 │   ├── src/
 │   │   ├── components/    # Componentes reutilizables
-│   │   ├── hooks/         # Custom hooks
+│   │   ├── hooks/         # Custom hooks (incluyendo WebSocket)
 │   │   ├── lib/           # Utilidades y configuración
-│   │   ├── pages/         # Páginas de la aplicación
-│   │   ├── providers/     # Contextos y proveedores
-│   │   ├── App.tsx        # Componente principal
-│   │   └── main.tsx       # Punto de entrada
-├── server/                # Backend Express
-│   ├── db.ts              # Configuración de la base de datos
-│   ├── index.ts           # Punto de entrada del servidor
-│   ├── routes.ts          # Definición de rutas API
+│   │   ├── pages/         # Páginas principales
+│   │   └── providers/     # Contextos y proveedores
+│
+├── server/                # Aplicación Express (Backend)
+│   ├── db.ts              # Configuración de base de datos
+│   ├── routes.ts          # Rutas de API y WebSocket
 │   ├── storage.ts         # Capa de acceso a datos
-│   └── vite.ts            # Configuración de Vite
+│   └── auth.ts            # Lógica de autenticación
+│
 ├── shared/                # Código compartido
-│   └── schema.ts          # Esquemas de datos con Drizzle
-├── drizzle.config.ts      # Configuración de Drizzle ORM
-├── package.json           # Dependencias del proyecto
-├── tailwind.config.ts     # Configuración de TailwindCSS
-└── theme.json             # Tema personalizado
+│   └── schema.ts          # Definiciones de tipos y esquemas
 ```
 
-## Estado de la Interfaz
+## 🗃️ Modelo de Datos
 
-- **Inicio**: Página de presentación con secciones de funcionalidades, beneficios y contacto.
-- **Registro**: Formulario funcional con validaciones para crear nuevas cuentas.
-- **Login**: Sistema de autenticación funcional.
-- **Dashboard**: Visualización de resumen de actividades (en desarrollo).
-- **Perfil**: Gestión de información personal y profesional.
-- **Citas**: Calendario y gestión de horarios disponibles.
-- **Mensajes**: Plantillas y comunicación con pacientes.
-- **Formularios**: Gestión de documentos de consentimiento.
+### Principales Entidades
+- **Users**: Psicólogos y pacientes con datos de autenticación
+- **Patients**: Información detallada de pacientes y relación con psicólogo
+- **Appointments**: Citas programadas con estado y metadatos
+- **Messages**: Sistema de comunicación bidireccional
+- **Availability**: Slots de tiempo disponibles para citas
+- **ConsentForms**: Documentación legal y administrativa
 
+## 🚀 Características WebSocket
 
-## Próximos Pasos
+El sistema de mensajería en tiempo real implementa:
 
-1. Completar la integración con la base de datos PostgreSQL
-2. Implementar las funciones de IA para la generación de mensajes personalizados
-3. Desarrollar el sistema de encriptación para datos clínicos
-4. Mejorar la experiencia de usuario en el calendario de citas
-5. Agregar funcionalidades para la gestión de historias clínicas
+- **Autenticación de conexiones** para seguridad
+- **Tipado de mensajes** para distinguir notificaciones, confirmaciones y mensajes
+- **Broadast selectivo** a los usuarios específicos
+- **Reconexión automática** ante pérdidas de conexión
+- **Sincronización de estado** con el servidor
+- **Notificaciones** para nuevos mensajes recibidos
+- **Confirmaciones** para mensajes enviados
 
-## Tecnologías Utilizadas
-- **Frontend**: React, TypeScript, TailwindCSS, TanStack Query
-- **Backend**: Express, Node.js, Passport
-- **Base de Datos**: PostgreSQL, Drizzle ORM
-- **Estilo**: Shadcn UI, Lucide Icons
-- **Autenticación**: Passport.js con sesiones
+## 📊 Panel de Administración
+
+El dashboard ofrece:
+
+- Vista unificada de citas, pacientes y mensajes
+- Estadísticas de práctica profesional
+- Acceso rápido a las funciones principales
+- Personalización de la experiencia
+- Calendario integrado con visualización diaria/semanal/mensual
+
+## 📱 Versión Responsive
+
+La plataforma está optimizada para:
+- Computadoras de escritorio
+- Tablets
+- Dispositivos móviles (Android e iOS)
+
+## 🔒 Seguridad
+
+- Autenticación segura con sesiones
+- Encriptación de datos sensibles
+- Validación de entrada en frontend y backend
+- Protección contra ataques comunes (CSRF, XSS)
+- Registro de actividad para auditoría
+
+## 🔄 Ciclo de Desarrollo
+
+El proyecto sigue un desarrollo iterativo con:
+- CI/CD para despliegue continuo
+- Pruebas automatizadas
+- Feedback constante de usuarios
+- Mejoras incrementales basadas en uso real
+
+## 📞 Sistema de Mensajería
+
+El sistema de mensajería incluye:
+- Interfaz de usuario intuitiva con vista de conversaciones
+- Diferenciación clara entre mensajes enviados y recibidos
+- Notificaciones en tiempo real mediante WebSockets
+- Confirmación de lectura de mensajes
+- Plantillas predefinidas para comunicaciones frecuentes
+- Historial completo de conversaciones
