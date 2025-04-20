@@ -81,7 +81,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Verificar cookies después del login
         console.log("Cookies después de login:", document.cookie);
         
-        return await res.json();
+        if (!res.ok) {
+          // Intentar extraer mensaje de error de la respuesta
+          let errorMessage = "Error al iniciar sesión";
+          try {
+            const errorData = await res.json();
+            if (errorData && errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (e) {
+            console.error("No se pudo parsear respuesta de error:", e);
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        try {
+          const data = await res.json();
+          console.log("Datos de login recibidos:", {
+            ...data,
+            id: data.id,
+            username: data.username
+          });
+          return data;
+        } catch (parseError) {
+          console.error("Error al procesar JSON de respuesta:", parseError);
+          throw new Error("Error procesando la respuesta del servidor");
+        }
       } catch (error: any) {
         console.error("Error en proceso de login:", error);
         
@@ -126,7 +152,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
       try {
-        console.log("Iniciando registro con:", userData.username);
+        console.log("Iniciando registro con:", {
+          ...userData,
+          password: '[REDACTED]'
+        });
         
         // Usamos apiRequest para mantener consistencia en la forma de hacer peticiones
         const res = await apiRequest("POST", "/api/register", userData);
@@ -134,7 +163,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Verificar si hay cookies después del registro
         console.log("Cookies después de registro:", document.cookie);
         
-        return await res.json();
+        if (!res.ok) {
+          // Intentar extraer mensaje de error de la respuesta
+          let errorMessage = "Error al registrar usuario";
+          try {
+            const errorData = await res.json();
+            if (errorData && errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (e) {
+            console.error("No se pudo parsear respuesta de error:", e);
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        try {
+          const data = await res.json();
+          console.log("Datos de registro recibidos:", {
+            ...data,
+            id: data.id,
+            username: data.username
+          });
+          return data;
+        } catch (parseError) {
+          console.error("Error al procesar JSON de respuesta:", parseError);
+          throw new Error("Error procesando la respuesta del servidor");
+        }
       } catch (error: any) {
         console.error("Error en proceso de registro:", error);
         
