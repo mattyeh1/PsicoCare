@@ -6,11 +6,30 @@ import cors from "cors";
 const app = express();
 
 // Configurar CORS para permitir el intercambio de cookies entre cliente y servidor
-app.use(cors({
-  origin: true, // Permitir solicitudes desde cualquier origen en desarrollo
-  credentials: true, // Importante: permite que las cookies se envíen con las solicitudes
-  exposedHeaders: ["set-cookie"]
-}));
+// Con configuración detallada para solucionar problemas de autenticación
+const corsOptions = {
+  origin: (origin, callback) => {
+    // En desarrollo, permitir cualquier origen incluso 'null'
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true, // Esencial: permite que las cookies se envíen con las solicitudes
+  exposedHeaders: ['set-cookie'],
+  maxAge: 86400, // 1 día en segundos, reduce preflight requests
+};
+
+app.use(cors(corsOptions));
+
+// Middleware adicional para asegurarse de que las cabeceras de CORS se establecen siempre
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  // Permitir todos los orígenes, incluso 'null' - no es apropiado para producción pero útil en desarrollo
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

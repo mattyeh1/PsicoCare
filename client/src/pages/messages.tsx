@@ -102,33 +102,55 @@ const Messages = () => {
     staleTime: 0, // Asegurar que siempre se obtenga el usuario actual
   });
 
+  // Estado para controlar intentos de verificación
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
+  const maxVerificationAttempts = 3;
+
   // Verificar autenticación y redirigir si es necesario
   useEffect(() => {
-    // Solo verificamos el estado de autenticación una vez que la consulta ha terminado
-    // y no estamos en un estado de carga
-    if (!isLoading) {
-      // Agregar logging detallado para diagnóstico de la sesión
-      const sessionData = {
-        user: !!user, 
-        userCheck: !!userCheck, 
-        isLoading,
-        cookiesEnabled: navigator.cookieEnabled,
-        hasSessionCookie: document.cookie.includes("connect.sid"),
-        documentCookie: document.cookie.length > 0 ? "presente" : "ausente",
-        userAgent: navigator.userAgent
-      };
-      
-      console.log("Estado de autenticación en messages:", sessionData);
-      
-      // Verificar si realmente no hay sesión después de intentar cargar
-      if (!user && !userCheck) {
-        console.warn("No se detectó sesión de usuario. Preparando redirección a login.");
+    // Solo procedemos si ya intentamos cargar datos
+    if (isLoading) return;
+    
+    // Agregar logging detallado para diagnóstico de la sesión
+    const sessionData = {
+      user: !!user, 
+      userCheck: !!userCheck, 
+      isLoading,
+      verificationAttempts,
+      cookiesEnabled: navigator.cookieEnabled,
+      hasSessionCookie: document.cookie.includes("connect.sid"),
+      documentCookie: document.cookie.length > 0 ? "presente" : "ausente",
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    };
+    
+    console.log(`[Messages Page] Estado de autenticación (intento ${verificationAttempts+1}/${maxVerificationAttempts}):`, sessionData);
+    
+    // Verificar si hay sesión o si aún tenemos reintentos
+    if (!user && !userCheck) {
+      if (verificationAttempts < maxVerificationAttempts) {
+        console.log(`[Messages Page] Reintentando verificación de autenticación (${verificationAttempts+1}/${maxVerificationAttempts})`);
+        
+        // Incrementar contador de intentos
+        setVerificationAttempts(prev => prev + 1);
+        
+        // Esperar un momento y reintentar la consulta de usuario
+        const retryTimer = setTimeout(() => {
+          console.log('[Messages Page] Reintentando refetch de usuario...');
+          // Forzar refetch de datos de usuario
+          if (refetchUserCheck) refetchUserCheck();
+          if (refetchUser) refetchUser();
+        }, 800); // Pequeña espera para dar tiempo a que se establezca la sesión
+        
+        return () => clearTimeout(retryTimer);
+      } else {
+        console.warn("[Messages Page] No se detectó sesión después de múltiples intentos. Redirigiendo a login.");
         
         // Construir URL con parámetro de redirección de retorno
         const returnUrl = encodeURIComponent(window.location.pathname);
         const loginUrl = `/login?returnTo=${returnUrl}`;
         
-        console.log("URL de redirección construida:", loginUrl);
+        console.log("[Messages Page] URL de redirección:", loginUrl);
         
         // Mostrar mensaje error con posibilidad de reintentar
         toast({
@@ -140,7 +162,10 @@ const Messages = () => {
                 <Button 
                   variant="destructive" 
                   size="sm" 
-                  onClick={() => window.location.reload()}
+                  onClick={() => {
+                    setVerificationAttempts(0); // Reiniciar contador
+                    window.location.reload();
+                  }}
                 >
                   Reintentar
                 </Button>
@@ -165,8 +190,10 @@ const Messages = () => {
         
         return () => clearTimeout(redirectTimer);
       }
+    } else if (user || userCheck) {
+      console.log('[Messages Page] Usuario autenticado correctamente:', user?.username || userCheck?.username);
     }
-  }, [user, userCheck, toast, isLoading]);
+  }, [user, userCheck, toast, isLoading, verificationAttempts, refetchUser, refetchUserCheck]);
 
   // Fetch message templates with authentication handling
   const { data: templates, isLoading: templatesLoading } = useQuery<MessageTemplate[]>({
