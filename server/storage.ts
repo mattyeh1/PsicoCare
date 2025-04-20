@@ -551,20 +551,40 @@ export class DatabaseStorage implements IStorage {
     // Primero, obtener los datos del usuario para verificar que es paciente
     const user = await this.getUser(userId);
     if (!user || user.user_type !== 'patient') {
+      console.log(`Usuario #${userId} no es de tipo paciente o no existe`);
       return undefined;
     }
     
-    // Buscar paciente donde email coincide con el del usuario
-    const [patient] = await db.select()
+    console.log(`Buscando paciente para usuario #${userId} con email ${user.email}`);
+    
+    // Búsqueda por email (principal)
+    let results = await db.select()
       .from(patients)
       .where(eq(patients.email, user.email));
     
+    // Si no encontramos por email y el usuario tiene psicólogo asignado, intentamos buscar por psicólogo
+    if (results.length === 0 && user.psychologist_id) {
+      console.log(`No se encontró por email, buscando pacientes del psicólogo #${user.psychologist_id}`);
+      
+      // Buscar todos los pacientes del psicólogo
+      results = await db.select()
+        .from(patients)
+        .where(eq(patients.psychologist_id, user.psychologist_id));
+        
+      console.log(`Se encontraron ${results.length} pacientes para el psicólogo #${user.psychologist_id}`);
+    }
+    
+    const patient = results.length > 0 ? results[0] : undefined;
+    
     if (patient) {
+      console.log(`Paciente encontrado: #${patient.id} - ${patient.name}`);
       // Actualizar caché
       this.patientCache.set(patient.id, {
         data: patient,
         timestamp: Date.now()
       });
+    } else {
+      console.log(`No se encontró paciente para el usuario #${userId}`);
     }
     
     return patient;

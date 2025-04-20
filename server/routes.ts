@@ -546,12 +546,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Preparar los datos para la cita (con valores por defecto)
-      const appointmentData = { 
-        date: date,
-        duration: duration || 60,
+      const appointmentData: InsertAppointment = { 
+        date: new Date(date),
+        duration: Number(duration) || 60,
         psychologist_id: patient.psychologist_id,
         patient_id: patient.id,
-        status: "pending", // Las citas solicitadas por pacientes están pendientes de aprobación
+        status: "pending" as const, // Las citas solicitadas por pacientes están pendientes de aprobación
         notes: req.body.notes || null
       };
       
