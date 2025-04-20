@@ -110,24 +110,18 @@ export function setupAuth(app: Express) {
         password: req.body.password ? '[REDACTED]' : undefined
       });
       
-      // Validar que el cuerpo de la solicitud tenga los campos requeridos
+      // Validar campos básicos de cualquier usuario
       if (!req.body || !req.body.username || !req.body.password) {
         console.log("Datos de registro incompletos");
         return res.status(400).json({ error: "Datos incompletos" });
       }
 
-      // Validar email
       if (!req.body.email) {
         return res.status(400).json({ error: "El email es obligatorio" });
       }
 
-      // Validar otros campos obligatorios
       if (!req.body.full_name) {
         return res.status(400).json({ error: "El nombre completo es obligatorio" });
-      }
-
-      if (!req.body.specialty) {
-        return res.status(400).json({ error: "La especialidad es obligatoria" });
       }
 
       // Verificar si el usuario ya existe
@@ -146,13 +140,48 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "El email ya está registrado" });
       }
 
-      console.log("Creando nuevo usuario:", req.body.username);
-      // Crear el usuario
       const hashedPassword = await hashPassword(req.body.password);
-      const user = await storage.createUser({
+      let userData = {
         ...req.body,
         password: hashedPassword,
-      });
+      };
+
+      // Verificamos el tipo de usuario que se está registrando
+      if (req.body.user_type === 'psychologist') {
+        // Si es psicólogo, validamos especialidad
+        if (!req.body.specialty) {
+          return res.status(400).json({ error: "La especialidad es obligatoria para psicólogos" });
+        }
+        
+        // Generamos un código único de 4 dígitos para el psicólogo
+        const uniqueCode = Math.floor(1000 + Math.random() * 9000).toString();
+        userData.unique_code = uniqueCode;
+        
+        console.log("Creando nuevo psicólogo con código:", uniqueCode);
+      } 
+      else if (req.body.user_type === 'patient') {
+        // Si es paciente, validamos el código del psicólogo
+        if (!req.body.psychologist_code) {
+          return res.status(400).json({ error: "El código del psicólogo es obligatorio" });
+        }
+        
+        // Buscamos el psicólogo por el código
+        const psychologist = await storage.getUserByUniqueCode(req.body.psychologist_code);
+        
+        if (!psychologist || psychologist.user_type !== 'psychologist') {
+          return res.status(400).json({ error: "Código de psicólogo inválido" });
+        }
+        
+        // Asociamos al paciente con el psicólogo
+        userData.psychologist_id = psychologist.id;
+        console.log("Creando nuevo paciente asociado al psicólogo ID:", psychologist.id);
+      }
+      else {
+        return res.status(400).json({ error: "Tipo de usuario inválido" });
+      }
+
+      // Crear el usuario
+      const user = await storage.createUser(userData);
 
       console.log("Usuario creado, iniciando sesión:", user.id);
       // Iniciar sesión automáticamente

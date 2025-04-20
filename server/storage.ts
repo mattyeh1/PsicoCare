@@ -23,6 +23,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUniqueCode(code: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
   recordUserLogin(id: number): Promise<void>;
@@ -172,6 +173,10 @@ export class MemStorage implements IStorage {
   
   async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.email === email);
+  }
+  
+  async getUserByUniqueCode(code: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.unique_code === code);
   }
 
   async createUser(user: InsertUser): Promise<User> {
@@ -437,6 +442,17 @@ export class DatabaseStorage implements IStorage {
   
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    
+    if (user) {
+      // Actualizar caché si se encuentra el usuario
+      this.userCache.set(user.id, { ...user, cacheTime: Date.now() });
+    }
+    
+    return user;
+  }
+  
+  async getUserByUniqueCode(code: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.unique_code, code));
     
     if (user) {
       // Actualizar caché si se encuentra el usuario

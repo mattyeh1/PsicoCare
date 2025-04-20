@@ -8,6 +8,9 @@ export const appointmentStatusEnum = pgEnum('appointment_status', ['scheduled', 
 // Enum for message templates
 export const messageTypeEnum = pgEnum('message_type', ['appointment_reminder', 'follow_up', 'welcome', 'cancellation', 'rescheduling', 'custom']);
 
+// Enumeración para diferenciar tipos de usuarios
+export const userTypeEnum = pgEnum('user_type', ['psychologist', 'patient']);
+
 // Users table (psychologists)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -15,7 +18,8 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }).notNull(),
   email: varchar("email", { length: 100 }).notNull().unique(),
   full_name: varchar("full_name", { length: 100 }).notNull(),
-  specialty: varchar("specialty", { length: 100 }).notNull(),
+  user_type: userTypeEnum("user_type").notNull().default('psychologist'),
+  specialty: varchar("specialty", { length: 100 }),
   bio: text("bio"),
   education: text("education"),
   certifications: text("certifications"),
@@ -27,12 +31,19 @@ export const users = pgTable("users", {
   last_login: timestamp("last_login"),
   timezone: varchar("timezone", { length: 50 }).default("UTC").notNull(),
   language_preference: varchar("language_preference", { length: 10 }).default("es").notNull(),
+  // Código único para psicólogos (4 dígitos)
+  unique_code: varchar("unique_code", { length: 4 }),
+  // Referencia al psicólogo para pacientes
+  psychologist_id: integer("psychologist_id").references(() => users.id),
 }, (table) => {
   return {
     emailIdx: index("users_email_idx").on(table.email),
     usernameIdx: index("users_username_idx").on(table.username),
     fullNameIdx: index("users_full_name_idx").on(table.full_name),
     specialtyIdx: index("users_specialty_idx").on(table.specialty),
+    uniqueCodeIdx: index("users_unique_code_idx").on(table.unique_code),
+    psychologistIdIdx: index("users_psychologist_id_idx").on(table.psychologist_id),
+    userTypeIdx: index("users_user_type_idx").on(table.user_type),
   };
 });
 
@@ -187,6 +198,21 @@ export const insertUserSchema = createInsertSchema(users).omit({
   language_preference: true
 });
 
+// Esquema específico para registro de psicólogos
+export const insertPsychologistSchema = insertUserSchema.extend({
+  user_type: z.literal('psychologist'),
+  specialty: z.string().min(3, { message: "La especialidad es obligatoria" })
+});
+
+// Esquema específico para registro de pacientes
+export const insertPatientUserSchema = insertUserSchema.extend({
+  user_type: z.literal('patient'),
+  psychologist_code: z.string().length(4, { 
+    message: "El código del psicólogo debe tener exactamente 4 dígitos" 
+  }),
+  specialty: z.string().optional()
+});
+
 export const insertPatientSchema = createInsertSchema(patients).omit({ 
   id: true, 
   created_at: true, 
@@ -258,6 +284,8 @@ export const insertContactRequestSchema = createInsertSchema(contact_requests).o
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertPsychologist = z.infer<typeof insertPsychologistSchema>;
+export type InsertPatientUser = z.infer<typeof insertPatientUserSchema>;
 
 export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = z.infer<typeof insertPatientSchema>;
