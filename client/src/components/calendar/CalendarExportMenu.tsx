@@ -1,9 +1,4 @@
-import { useState, useEffect } from "react";
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from "@/components/ui/popover";
+import React, { useState, useEffect } from "react";
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -14,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar, Download, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface CalendarExportMenuProps {

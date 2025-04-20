@@ -58,6 +58,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppointmentCalendar from "@/components/calendar/AppointmentCalendar";
 import TimeSlots from "@/components/calendar/TimeSlots";
+import CalendarExportMenu from "@/components/calendar/CalendarExportMenu";
 import { cn } from "@/lib/utils";
 import { Appointment, Patient, Availability } from "@shared/schema";
 
