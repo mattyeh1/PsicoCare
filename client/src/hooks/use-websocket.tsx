@@ -129,8 +129,8 @@ export const useWebSocket = (
 
   // Initial connect
   useEffect(() => {
-    // Solo intentar conectarse si estamos en un navegador
-    if (typeof window !== 'undefined') {
+    // Solo intentar conectarse si estamos en un navegador y tenemos una URL
+    if (typeof window !== 'undefined' && url && !socket.current) {
       console.log('[WebSocket] Initializing WebSocket connection...');
       connect();
     }
@@ -140,7 +140,7 @@ export const useWebSocket = (
       console.log('[WebSocket] Disconnecting...');
       cleanup();
     };
-  }, [connect, cleanup]);
+  }, [url, connect, cleanup]);
   
   // Reconectar si la pestaña vuelve a tener foco
   useEffect(() => {
