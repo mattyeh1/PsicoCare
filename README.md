@@ -2,39 +2,63 @@
 
 PsiConnect es una plataforma minimalista diseñada específicamente para psicólogos, enfocada en la gestión eficiente de pacientes, citas, comunicaciones y documentación.
 
-## Características Principales
+## Características Actuales ✅
 
-- **Gestión de Pacientes**: Registro y seguimiento de pacientes
-- **Agenda de Citas**: Calendario interactivo con gestión de disponibilidad
-- **Comunicaciones**: Sistema de plantillas de mensajes personalizables
-- **Documentación**: Gestión de formularios de consentimiento
-- **Interfaz Responsiva**: Diseño adaptable para todos los dispositivos
+- **Gestión de Pacientes**: 
+  - Registro y seguimiento de pacientes
+  - Historial de citas
+  - Notas y observaciones
+
+- **Agenda de Citas**: 
+  - Calendario interactivo
+  - Gestión de disponibilidad
+  - Confirmaciones automáticas
+
+- **Sistema de Mensajes**:
+  - Plantillas personalizables
+  - Comunicación segura
+  - Notificaciones
+
+- **Documentación Digital**:
+  - Formularios de consentimiento
+  - Firma digital
+  - Almacenamiento seguro
+
+- **Interfaz Responsiva**:
+  - Diseño adaptable a todos los dispositivos
+  - Experiencia de usuario optimizada
+  - Navegación intuitiva
 
 ## Tecnologías Utilizadas
 
-- **Frontend**: React + TypeScript, TailwindCSS, Shadcn UI
-- **Backend**: Express.js, Node.js
-- **Base de Datos**: PostgreSQL con Drizzle ORM
-- **Autenticación**: Sistema de sesiones seguro
+- **Frontend**: 
+  - React con TypeScript
+  - TailwindCSS para estilos
+  - Shadcn UI para componentes
+  - TanStack Query para gestión de estado
 
-## Requisitos del Sistema
+- **Backend**: 
+  - Express.js
+  - Node.js
+  - Sistema de sesiones seguro
 
-- Node.js 18+
-- PostgreSQL
+- **Base de Datos**: 
+  - PostgreSQL
+  - Drizzle ORM
 
-## Instalación
+## Inicio Rápido
 
-1. Clona el repositorio
-2. Instala las dependencias:
+1. **Instalación de dependencias**:
 ```bash
 npm install
 ```
-3. Configura las variables de entorno
-4. Inicializa la base de datos:
+
+2. **Configuración de la base de datos**:
 ```bash
 npm run db:push
 ```
-5. Inicia el servidor de desarrollo:
+
+3. **Iniciar el servidor de desarrollo**:
 ```bash
 npm run dev
 ```
@@ -43,22 +67,19 @@ npm run dev
 
 ```
 ├── client/          # Frontend React
+│   ├── src/
+│   │   ├── components/  # Componentes UI
+│   │   ├── hooks/      # Custom hooks
+│   │   ├── pages/      # Páginas
+│   │   └── providers/  # Contextos
 ├── server/          # Backend Express
-├── shared/          # Código compartido
-└── ...
+│   ├── services/    # Servicios
+│   └── routes.ts    # Rutas API
+└── shared/          # Código compartido
 ```
 
-## Estado Actual
+## Características en Desarrollo 🚧
 
-### Implementado ✅
-- Sistema de autenticación completo
-- Gestión de perfiles de usuario
-- Calendario de citas
-- Sistema de mensajes
-- Formularios de consentimiento
-- Interfaz responsiva
-
-### En Desarrollo 🚧
 - Integración con IA para mensajes
 - Sistema de notificaciones
 - Reportes y estadísticas
@@ -70,7 +91,6 @@ npm run dev
 Este proyecto está bajo la licencia MIT.
 
 ## Esquema de la Base de Datos
-
 ### Tablas
 
 1. **users** (psicólogos):
@@ -199,6 +219,7 @@ Este proyecto está bajo la licencia MIT.
 - **Citas**: Calendario y gestión de horarios disponibles.
 - **Mensajes**: Plantillas y comunicación con pacientes.
 - **Formularios**: Gestión de documentos de consentimiento.
+
 
 ## Próximos Pasos
 
