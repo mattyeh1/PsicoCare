@@ -238,7 +238,12 @@ export const insertPatientConsentSchema = createInsertSchema(patient_consents).o
   is_valid: true,
   expires_at: true
 }).extend({
-  form_version: z.string().default("1.0")
+  form_version: z.string().default("1.0"),
+  // Permitir que signed_at sea tanto string en formato ISO como objeto Date
+  signed_at: z.union([
+    z.string().transform((date) => new Date(date)),
+    z.date()
+  ])
 });
 
 export const insertContactRequestSchema = createInsertSchema(contact_requests).omit({ 
