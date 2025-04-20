@@ -31,15 +31,16 @@ async function comparePasswords(supplied: string, stored: string) {
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "secure-session-secret-development-only",
-    resave: false,
+    resave: true, // Cambiado a true para asegurar que la sesión se guarde
     saveUninitialized: false,
     store: storage.sessionStore,
+    name: 'psiconnect.sid', // Nombre personalizado para la cookie de sesión
     cookie: {
       httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días 
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      path: '/'
+      path: '/',
     }
   };
 
@@ -103,7 +104,23 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    // Verificar si hay un token CSRF en las cabeceras y mantener consistencia
+    const csrfToken = req.headers['x-csrf-token'];
+    
+    // Verificar autenticación normal de Passport
+    if (!req.isAuthenticated()) {
+      // Verificar si el cliente tiene una sesión local
+      const hasLocalSession = req.headers['x-has-session'] === 'true';
+      console.log(`[GET /api/user] No autenticado. Cliente indica sesión local: ${hasLocalSession}`);
+      
+      return res.sendStatus(401);
+    }
+    
+    // Si la sesión existe, actualizar la cookie para prolongar su duración
+    if (req.session) {
+      req.session.touch();
+    }
+    
     // Remover el password antes de enviar la respuesta
     const { password, ...userWithoutPassword } = req.user as SelectUser;
     res.json(userWithoutPassword);
