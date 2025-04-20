@@ -25,12 +25,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   setupAuth(app);
 
-  // Authentication middleware
+  // Authentication middleware with improved session handling
   const isAuthenticated = (req: Request, res: Response, next: any) => {
-    if (req.isAuthenticated()) {
+    // Verify if session is authenticated and user exists
+    if (req.isAuthenticated() && req.user && req.user.id) {
+      // Update activity timestamp to keep session alive
+      if (req.session) {
+        req.session.lastActivity = Date.now();
+      }
       return next();
     }
-    res.status(401).json({ message: "Unauthorized" });
+    
+    // Determine if it's an API request or page request
+    const isApiRequest = req.path.startsWith('/api/');
+    
+    if (isApiRequest) {
+      // For API requests, return JSON response
+      return res.status(401).json({ 
+        error: "No autorizado", 
+        message: "La sesión ha expirado o no está autenticada"
+      });
+    } else {
+      // For page requests, redirect to login
+      return res.redirect('/login');
+    }
   };
 
   // Error handling middleware for Zod validation

@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 // Tipo de mensaje para generación
 export type MessageGenerationParams = {
@@ -11,12 +11,44 @@ export type MessageGenerationParams = {
   customInstructions?: string;
 };
 
+// Función auxiliar para verificar la sesión antes de hacer peticiones
+const ensureAuthenticated = async () => {
+  // Verificar si hay un usuario en la caché
+  const user = queryClient.getQueryData(["/api/user"]);
+  
+  if (!user) {
+    // Si no hay usuario, intentar refrescar los datos
+    try {
+      await queryClient.fetchQuery({ queryKey: ["/api/user"] });
+    } catch (error) {
+      console.error("Error de autenticación en servicio AI:", error);
+      throw new Error("Sesión expirada o inválida. Por favor, inicie sesión nuevamente.");
+    }
+  }
+};
+
 /**
  * Solicita la generación de un mensaje personalizado usando IA
  */
 export async function generateMessage(params: MessageGenerationParams): Promise<string> {
   try {
-    const response = await apiRequest("POST", "/api/ai/generate-message", params);
+    // Asegurar que la sesión esté activa
+    await ensureAuthenticated();
+    
+    const response = await apiRequest("POST", "/api/ai/generate-message", params, {
+      credentials: 'include', // Asegurar que se envían las cookies
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Sesión expirada. Inicie sesión para continuar.");
+      }
+      throw new Error(`Error del servidor: ${response.status}`);
+    }
+    
     const data = await response.json();
     return data.message;
   } catch (error) {
@@ -30,7 +62,23 @@ export async function generateMessage(params: MessageGenerationParams): Promise<
  */
 export async function improveMessage(message: string, instructions: string): Promise<string> {
   try {
-    const response = await apiRequest("POST", "/api/ai/improve-message", { message, instructions });
+    // Asegurar que la sesión esté activa
+    await ensureAuthenticated();
+    
+    const response = await apiRequest("POST", "/api/ai/improve-message", { message, instructions }, {
+      credentials: 'include', // Asegurar que se envían las cookies
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Sesión expirada. Inicie sesión para continuar.");
+      }
+      throw new Error(`Error del servidor: ${response.status}`);
+    }
+    
     const data = await response.json();
     return data.message;
   } catch (error) {
@@ -44,7 +92,25 @@ export async function improveMessage(message: string, instructions: string): Pro
  */
 export async function suggestTitle(content: string): Promise<string> {
   try {
-    const response = await apiRequest("POST", "/api/ai/suggest-title", { content });
+    // Asegurar que la sesión esté activa
+    await ensureAuthenticated();
+    
+    const response = await apiRequest("POST", "/api/ai/suggest-title", { content }, {
+      credentials: 'include', // Asegurar que se envían las cookies
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        // En caso de error de autenticación, devolver un valor por defecto
+        console.warn("Sesión expirada al sugerir título");
+        return "Plantilla de mensaje";
+      }
+      throw new Error(`Error del servidor: ${response.status}`);
+    }
+    
     const data = await response.json();
     return data.title;
   } catch (error) {
