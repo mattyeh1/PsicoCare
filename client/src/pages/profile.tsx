@@ -243,35 +243,34 @@ const Profile = () => {
         </div>
 
         {userData?.user_type === 'psychologist' && userData?.unique_code && (
-          <Card className="border-primary mb-6 overflow-hidden">
-            <CardContent className="p-0">
-              <div className="bg-primary/10 p-4 border-b border-primary/20">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                  <div className="text-center md:text-left">
-                    <h3 className="text-lg font-bold text-primary mb-1">Tu código único para pacientes</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Comparte este código con tus pacientes para que puedan conectarse contigo al registrarse
-                    </p>
+          <Card className="border-primary mb-6 overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="text-center md:text-left">
+                  <h3 className="text-xl font-bold text-primary mb-2">Tu código único para pacientes</h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Comparte este código con tus pacientes para que puedan conectarse contigo al registrarse
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-4">
+                  <div className="text-4xl font-mono font-bold tracking-widest text-primary bg-white dark:bg-gray-800 rounded-lg px-6 py-3 border-2 border-primary/30 shadow-sm">
+                    {userData.unique_code}
                   </div>
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="text-3xl font-bold tracking-wider text-primary bg-white/80 dark:bg-gray-900/80 rounded-md px-6 py-3 border border-primary/20">
-                      {userData.unique_code}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(userData.unique_code);
-                        toast({
-                          title: "Código copiado",
-                          description: "El código ha sido copiado al portapapeles",
-                        });
-                      }}
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copiar
-                    </Button>
-                  </div>
+                  <Button
+                    variant="default"
+                    size="default"
+                    className="shadow-sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(userData.unique_code);
+                      toast({
+                        title: "Código copiado",
+                        description: "El código ha sido copiado al portapapeles",
+                      });
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copiar
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -348,19 +347,6 @@ const Profile = () => {
                       <h3 className="text-lg font-semibold border-b pb-2">Información de contacto</h3>
                       <div className="ml-4">
                         <p><strong>Email:</strong> {userData?.email}</p>
-                        {userData?.user_type === 'psychologist' && userData?.unique_code && (
-                          <div className="mt-2">
-                            <p className="mb-1"><strong>Código para pacientes:</strong></p>
-                            <div className="bg-primary/10 border border-primary/20 rounded-md p-3 flex flex-col md:flex-row justify-between items-center">
-                              <div className="text-2xl font-bold tracking-wider text-primary mb-2 md:mb-0">
-                                {userData.unique_code}
-                              </div>
-                              <div className="text-sm text-muted-foreground text-center md:text-right">
-                                Comparte este código con tus pacientes para que puedan conectarse contigo al registrarse.
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
