@@ -422,7 +422,7 @@ const ConsentForms = () => {
                 {selectedForm && (
                   <div className="border p-4 rounded-md bg-muted/30">
                     <h3 className="font-medium mb-2">{selectedForm.title}</h3>
-                    <div className="text-sm whitespace-pre-line mb-4">
+                    <div className="text-sm whitespace-pre-line mb-4 max-h-60 overflow-y-auto">
                       {selectedForm.content}
                     </div>
                   </div>
@@ -495,7 +495,7 @@ const ConsentForms = () => {
                 
                 <div className="border p-4 rounded-md bg-muted/30">
                   {consentForms && (
-                    <div className="text-sm whitespace-pre-line mb-4">
+                    <div className="text-sm whitespace-pre-line mb-4 max-h-60 overflow-y-auto">
                       {consentForms.find(f => f.id === viewingConsent.consent_form_id)?.content}
                     </div>
                   )}
