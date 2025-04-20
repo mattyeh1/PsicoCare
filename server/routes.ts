@@ -214,6 +214,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ruta para que los psicólogos aprueben o rechacen citas pendientes
+  app.put("/api/appointments/:id/status", isAuthenticated, isPsychologist, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const appointmentId = parseInt(req.params.id);
+      const { status, notes } = req.body;
+      
+      if (!status || !['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ message: "Estado no válido. Debe ser 'approved' o 'rejected'" });
+      }
+      
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar que la cita pertenece a este psicólogo
+      if (appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para modificar esta cita" });
+      }
+      
+      // La cita debe estar en estado "pending" para poder ser aprobada o rechazada
+      if (appointment.status !== 'pending') {
+        return res.status(400).json({ 
+          message: `No es posible ${status === 'approved' ? 'aprobar' : 'rechazar'} una cita que no está pendiente` 
+        });
+      }
+      
+      // Actualizar el estado de la cita y añadir notas si existen
+      const updatedData: any = { status };
+      if (notes) updatedData.notes = notes;
+      
+      const updatedAppointment = await storage.updateAppointment(appointmentId, updatedData);
+      res.json(updatedAppointment);
+    } catch (error) {
+      console.error("Error al actualizar el estado de la cita:", error);
+      res.status(500).json({ message: "Error al actualizar el estado de la cita" });
+    }
+  });
+
   // Availability routes
   app.get("/api/availability", isAuthenticated, isPsychologist, async (req, res) => {
     try {
@@ -401,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         psychologist_id: patient.psychologist_id,
         patient_id: patient.id,
-        status: "scheduled" // Por defecto, las citas nuevas están programadas
+        status: "pending" // Las citas solicitadas por pacientes están pendientes de aprobación
       };
       
       // Crear la cita

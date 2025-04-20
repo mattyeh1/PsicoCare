@@ -16,6 +16,7 @@ import Appointments from "@/pages/appointments";
 import Messages from "@/pages/messages";
 import ConsentForms from "@/pages/consent-forms";
 import PatientDashboard from "@/pages/patient-dashboard";
+import AppointmentRequests from "@/pages/appointment-requests";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
