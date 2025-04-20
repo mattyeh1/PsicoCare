@@ -37,7 +37,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Patient } from "@shared/schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Plus, Calendar, MessageSquare, FileText } from "lucide-react";
+import { Plus, Calendar, MessageSquare, FileText, Edit, Copy } from "lucide-react";
 
 // Form schema for profile update
 const formSchema = z.object({
@@ -238,6 +238,42 @@ const Profile = () => {
           </p>
         </div>
 
+        {userData?.user_type === 'psychologist' && userData?.unique_code && (
+          <Card className="border-primary mb-6 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="bg-primary/10 p-4 border-b border-primary/20">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div className="text-center md:text-left">
+                    <h3 className="text-lg font-bold text-primary mb-1">Tu código único para pacientes</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Comparte este código con tus pacientes para que puedan conectarse contigo al registrarse
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="text-3xl font-bold tracking-wider text-primary bg-white/80 dark:bg-gray-900/80 rounded-md px-6 py-3 border border-primary/20">
+                      {userData.unique_code}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(userData.unique_code);
+                        toast({
+                          title: "Código copiado",
+                          description: "El código ha sido copiado al portapapeles",
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copiar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         <Tabs defaultValue="profile" className="space-y-4">
           <TabsList>
             <TabsTrigger value="profile">Información profesional</TabsTrigger>
