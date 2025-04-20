@@ -755,7 +755,7 @@ const ConsentForms = () => {
                 <CardContent className="space-y-6">
                   <ConsentForm
                     title="Consentimiento informado para terapia"
-                    content="Por medio del presente documento, doy mi consentimiento para recibir servicios de psicoterapia con el Dr./Dra. [nombre_doctor]. Entiendo que la terapia implica un compromiso de tiempo, energía y recursos financieros. Me comprometo a asistir a las sesiones programadas y avisaré con 24 horas de anticipación si necesito cancelar o reprogramar.
+                    content={`Por medio del presente documento, doy mi consentimiento para recibir servicios de psicoterapia con ${user?.full_name || "el/la profesional"}. Entiendo que la terapia implica un compromiso de tiempo, energía y recursos financieros. Me comprometo a asistir a las sesiones programadas y avisaré con 24 horas de anticipación si necesito cancelar o reprogramar.
 
 Comprendo que la terapia puede involucrar discutir aspectos difíciles de mi vida personal y puedo experimentar emociones incómodas como tristeza, culpa, ansiedad, enojo, frustración, soledad e impotencia. También entiendo que la terapia ha demostrado tener beneficios para las personas que la realizan, como la reducción de sentimientos angustiantes, mejores relaciones, resolución de problemas específicos y mayor autoconocimiento.
 
@@ -766,11 +766,24 @@ Confidencialidad: Toda información compartida en las sesiones es confidencial y
 
 Comunicación electrónica: Autorizo el uso de correo electrónico y mensajes de texto para programar citas y breves consultas, entendiendo que la privacidad no puede garantizarse completamente en estos medios.
 
-Por la presente, reconozco que he leído y entendido este consentimiento, he tenido la oportunidad de hacer preguntas sobre el mismo, y acepto los términos establecidos."
+Por la presente, reconozco que he leído y entendido este consentimiento, he tenido la oportunidad de hacer preguntas sobre el mismo, y acepto los términos establecidos.`}
                     onUseTemplate={() => {
+                      const templateText = `Por medio del presente documento, doy mi consentimiento para recibir servicios de psicoterapia con ${user?.full_name || "el/la profesional"}. Entiendo que la terapia implica un compromiso de tiempo, energía y recursos financieros. Me comprometo a asistir a las sesiones programadas y avisaré con 24 horas de anticipación si necesito cancelar o reprogramar.
+
+Comprendo que la terapia puede involucrar discutir aspectos difíciles de mi vida personal y puedo experimentar emociones incómodas como tristeza, culpa, ansiedad, enojo, frustración, soledad e impotencia. También entiendo que la terapia ha demostrado tener beneficios para las personas que la realizan, como la reducción de sentimientos angustiantes, mejores relaciones, resolución de problemas específicos y mayor autoconocimiento.
+
+Confidencialidad: Toda información compartida en las sesiones es confidencial y no será revelada a terceros sin mi autorización escrita, excepto cuando la ley lo requiera, como en casos de:
+1. Riesgo de daño a mí mismo o a otros
+2. Abuso o negligencia de menores, ancianos o personas con discapacidad
+3. Orden judicial que requiera la divulgación de información
+
+Comunicación electrónica: Autorizo el uso de correo electrónico y mensajes de texto para programar citas y breves consultas, entendiendo que la privacidad no puede garantizarse completamente en estos medios.
+
+Por la presente, reconozco que he leído y entendido este consentimiento, he tenido la oportunidad de hacer preguntas sobre el mismo, y acepto los términos establecidos.`;
+                      
                       form.reset({
                         title: "Consentimiento informado para terapia",
-                        content: "Por medio del presente documento, doy mi consentimiento para recibir servicios de psicoterapia con el Dr./Dra. [nombre_doctor]. Entiendo que la terapia implica un compromiso de tiempo, energía y recursos financieros. Me comprometo a asistir a las sesiones programadas y avisaré con 24 horas de anticipación si necesito cancelar o reprogramar.\n\nComprendo que la terapia puede involucrar discutir aspectos difíciles de mi vida personal y puedo experimentar emociones incómodas como tristeza, culpa, ansiedad, enojo, frustración, soledad e impotencia. También entiendo que la terapia ha demostrado tener beneficios para las personas que la realizan, como la reducción de sentimientos angustiantes, mejores relaciones, resolución de problemas específicos y mayor autoconocimiento.\n\nConfidencialidad: Toda información compartida en las sesiones es confidencial y no será revelada a terceros sin mi autorización escrita, excepto cuando la ley lo requiera, como en casos de:\n1. Riesgo de daño a mí mismo o a otros\n2. Abuso o negligencia de menores, ancianos o personas con discapacidad\n3. Orden judicial que requiera la divulgación de información\n\nComunicación electrónica: Autorizo el uso de correo electrónico y mensajes de texto para programar citas y breves consultas, entendiendo que la privacidad no puede garantizarse completamente en estos medios.\n\nPor la presente, reconozco que he leído y entendido este consentimiento, he tenido la oportunidad de hacer preguntas sobre el mismo, y acepto los términos establecidos."
+                        content: templateText
                       });
                       setIsCreating(true);
                     }}
@@ -778,7 +791,7 @@ Por la presente, reconozco que he leído y entendido este consentimiento, he ten
                   
                   <ConsentForm
                     title="Consentimiento para terapia online"
-                    content="Mediante este documento, otorgo mi consentimiento para recibir servicios de psicoterapia en modalidad online con el Dr./Dra. [nombre_doctor]. Comprendo que la terapia online implica la utilización de videoconferencias, llamadas telefónicas u otras tecnologías de comunicación para facilitar el proceso terapéutico a distancia.
+                    content={`Mediante este documento, otorgo mi consentimiento para recibir servicios de psicoterapia en modalidad online con ${user?.full_name || "el/la profesional"}. Comprendo que la terapia online implica la utilización de videoconferencias, llamadas telefónicas u otras tecnologías de comunicación para facilitar el proceso terapéutico a distancia.
 
 Entiendo y acepto las siguientes consideraciones específicas de la terapia online:
 
@@ -796,11 +809,31 @@ Entiendo y acepto las siguientes consideraciones específicas de la terapia onli
 
 7. Honorarios y cancelaciones: Las políticas de pago y cancelación son las mismas que en la terapia presencial, según lo acordado con el profesional.
 
-Por la presente, certifico que he leído, comprendido y acepto los términos de este consentimiento informado para terapia online."
+Por la presente, certifico que he leído, comprendido y acepto los términos de este consentimiento informado para terapia online.`}
                     onUseTemplate={() => {
+                      const templateText = `Mediante este documento, otorgo mi consentimiento para recibir servicios de psicoterapia en modalidad online con ${user?.full_name || "el/la profesional"}. Comprendo que la terapia online implica la utilización de videoconferencias, llamadas telefónicas u otras tecnologías de comunicación para facilitar el proceso terapéutico a distancia.
+
+Entiendo y acepto las siguientes consideraciones específicas de la terapia online:
+
+1. Tecnología: Es mi responsabilidad asegurar una conexión a internet estable y contar con el equipo necesario (computadora, tablet o smartphone) para participar en las sesiones.
+
+2. Privacidad: Me comprometo a ubicarme en un espacio privado y libre de interrupciones durante las sesiones. El profesional garantiza estar en un entorno que preserve la confidencialidad.
+
+3. Confidencialidad: El terapeuta utilizará plataformas seguras y cifradas para las sesiones, pero reconozco que ninguna tecnología puede garantizar una confidencialidad absoluta. El terapeuta no grabará las sesiones y yo me comprometo a no grabarlas sin consentimiento explícito.
+
+4. Plan de emergencia: En caso de crisis o emergencia donde no sea posible mantener la comunicación online, se activará el siguiente protocolo: contacto con personas de confianza previamente designadas o servicios de emergencia locales.
+
+5. Limitaciones: Reconozco que la terapia online puede tener limitaciones en comparación con la terapia presencial, como dificultades técnicas o reducción de señales no verbales.
+
+6. Eficacia: He sido informado/a que la investigación ha demostrado que la terapia online puede ser tan efectiva como la terapia presencial para muchas condiciones, pero puede no ser adecuada en todos los casos.
+
+7. Honorarios y cancelaciones: Las políticas de pago y cancelación son las mismas que en la terapia presencial, según lo acordado con el profesional.
+
+Por la presente, certifico que he leído, comprendido y acepto los términos de este consentimiento informado para terapia online.`;
+                      
                       form.reset({
                         title: "Consentimiento para terapia online",
-                        content: "Mediante este documento, otorgo mi consentimiento para recibir servicios de psicoterapia en modalidad online con el Dr./Dra. [nombre_doctor]. Comprendo que la terapia online implica la utilización de videoconferencias, llamadas telefónicas u otras tecnologías de comunicación para facilitar el proceso terapéutico a distancia.\n\nEntiendo y acepto las siguientes consideraciones específicas de la terapia online:\n\n1. Tecnología: Es mi responsabilidad asegurar una conexión a internet estable y contar con el equipo necesario (computadora, tablet o smartphone) para participar en las sesiones.\n\n2. Privacidad: Me comprometo a ubicarme en un espacio privado y libre de interrupciones durante las sesiones. El profesional garantiza estar en un entorno que preserve la confidencialidad.\n\n3. Confidencialidad: El terapeuta utilizará plataformas seguras y cifradas para las sesiones, pero reconozco que ninguna tecnología puede garantizar una confidencialidad absoluta. El terapeuta no grabará las sesiones y yo me comprometo a no grabarlas sin consentimiento explícito.\n\n4. Plan de emergencia: En caso de crisis o emergencia donde no sea posible mantener la comunicación online, se activará el siguiente protocolo: contacto con personas de confianza previamente designadas o servicios de emergencia locales.\n\n5. Limitaciones: Reconozco que la terapia online puede tener limitaciones en comparación con la terapia presencial, como dificultades técnicas o reducción de señales no verbales.\n\n6. Eficacia: He sido informado/a que la investigación ha demostrado que la terapia online puede ser tan efectiva como la terapia presencial para muchas condiciones, pero puede no ser adecuada en todos los casos.\n\n7. Honorarios y cancelaciones: Las políticas de pago y cancelación son las mismas que en la terapia presencial, según lo acordado con el profesional.\n\nPor la presente, certifico que he leído, comprendido y acepto los términos de este consentimiento informado para terapia online."
+                        content: templateText
                       });
                       setIsCreating(true);
                     }}
