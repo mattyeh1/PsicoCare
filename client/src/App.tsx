@@ -22,13 +22,34 @@ import { useEffect } from "react";
 function ProtectedRoute({ component: Component, ...rest }: { component: any, path: string }) {
   const { user, isAuthenticated, isLoading, refetchUser } = useAuth();
   
+  // Verificar si hay sesión almacenada localmente
+  const hasLocalSession = localStorage.getItem('sessionActive') === 'true' || 
+                         localStorage.getItem('lastKnownUser') !== null;
+  
   // Efecto para forzar la recarga de datos de usuario al ingresar a una ruta protegida
   useEffect(() => {    
-    if (refetchUser) {
-      refetchUser().catch(err => {
-        console.error("Error al verificar la autenticación:", err);
-      });
-    }
+    const checkAuthentication = async () => {
+      if (refetchUser) {
+        try {
+          await refetchUser();
+          console.log("Refetch de usuario completado en ruta protegida");
+        } catch (err) {
+          console.error("Error al verificar la autenticación:", err);
+          // No redirigir aquí, para evitar ciclos de redirección
+        }
+      }
+    };
+    
+    checkAuthentication();
+    
+    // Verificación periódica solo cuando está visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        checkAuthentication();
+      }
+    }, 30000); // Cada 30 segundos
+    
+    return () => clearInterval(interval);
   }, [refetchUser, rest.path]);
   
   if (isLoading) {
@@ -39,8 +60,11 @@ function ProtectedRoute({ component: Component, ...rest }: { component: any, pat
     );
   }
   
-  // Verificación estricta: tanto isAuthenticated como user deben existir
-  if (!isAuthenticated || !user) {
+  // Verificación más permisiva:
+  // Si hay una sesión local guardada, permitimos el acceso aunque la verificación actual haya fallado
+  // Esto evita los deslogeos inesperados cuando hay problemas de red o del servidor
+  if (!isAuthenticated && !user && !hasLocalSession) {
+    console.log("Redirigiendo a login por falta de autenticación");
     return <Redirect to="/login" />;
   }
   

@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -40,6 +40,10 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  // Intenta recuperar el último usuario conocido del almacenamiento local
+  const cachedUser = localStorage.getItem('lastKnownUser');
+  const initialUser = cachedUser ? JSON.parse(cachedUser) : null;
+
   const {
     data: user,
     error,
@@ -48,9 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    retry: 2, // Aumentar reintentos en caso de error de red
+    retry: 3, // Aumentar reintentos en caso de error de red
     retryDelay: 1000, // Esperar 1 segundo antes de reintentar
-    initialData: null,
+    initialData: initialUser, // Usar el usuario en caché como datos iniciales
     staleTime: 30 * 1000, // Reducir a 30 segundos para verificar más a menudo
     refetchInterval: 60 * 1000, // Refrescar cada 1 minuto
     refetchIntervalInBackground: true,
@@ -58,6 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true, // Importante: recargar al reconectar
   });
+  
+  // Guarda el usuario en localStorage cuando cambia y no es nulo
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('lastKnownUser', JSON.stringify(user));
+    }
+  }, [user]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {

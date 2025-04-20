@@ -93,35 +93,50 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="flex items-center gap-2">
+                  <DropdownMenuItem>
+                    <div 
+                      onClick={() => window.location.href = "/dashboard"}
+                      className="flex items-center gap-2 cursor-pointer w-full"
+                    >
                       <User className="h-4 w-4" />
                       <span>Dashboard</span>
-                    </Link>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center gap-2">
+                  <DropdownMenuItem>
+                    <div 
+                      onClick={() => window.location.href = "/profile"}
+                      className="flex items-center gap-2 cursor-pointer w-full"
+                    >
                       <User className="h-4 w-4" />
                       <span>Perfil</span>
-                    </Link>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/appointments" className="flex items-center gap-2">
+                  <DropdownMenuItem>
+                    <div 
+                      onClick={() => window.location.href = "/appointments"}
+                      className="flex items-center gap-2 cursor-pointer w-full"
+                    >
                       <Calendar className="h-4 w-4" />
                       <span>Citas</span>
-                    </Link>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/messages" className="flex items-center gap-2">
+                  <DropdownMenuItem>
+                    <div 
+                      onClick={() => window.location.href = "/messages"}
+                      className="flex items-center gap-2 cursor-pointer w-full"
+                    >
                       <MessageSquare className="h-4 w-4" />
                       <span>Mensajes</span>
-                    </Link>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/consent-forms" className="flex items-center gap-2">
+                  <DropdownMenuItem>
+                    <div 
+                      onClick={() => window.location.href = "/consent-forms"}
+                      className="flex items-center gap-2 cursor-pointer w-full"
+                    >
                       <FileText className="h-4 w-4" />
                       <span>Consentimientos</span>
-                    </Link>
+                    </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-red-500">
                     <LogOut className="h-4 w-4" />
@@ -171,41 +186,51 @@ const Header = () => {
             
             {isAuthenticated ? (
               <>
-                <Link 
-                  href="/dashboard" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                <button 
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.location.href = "/dashboard";
+                  }}
                 >
                   Dashboard
-                </Link>
-                <Link 
-                  href="/profile" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                </button>
+                <button 
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.location.href = "/profile";
+                  }}
                 >
                   Perfil
-                </Link>
-                <Link 
-                  href="/appointments" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                </button>
+                <button 
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.location.href = "/appointments";
+                  }}
                 >
                   Citas
-                </Link>
-                <Link 
-                  href="/messages" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                </button>
+                <button 
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.location.href = "/messages";
+                  }}
                 >
                   Mensajes
-                </Link>
-                <Link 
-                  href="/consent-forms" 
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => setMobileMenuOpen(false)}
+                </button>
+                <button 
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.location.href = "/consent-forms";
+                  }}
                 >
                   Consentimientos
-                </Link>
+                </button>
                 <button 
                   onClick={() => {
                     handleLogout();
