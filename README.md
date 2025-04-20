@@ -2,6 +2,73 @@
 
 PsiConnect es una plataforma minimalista diseñada específicamente para psicólogos, enfocada en la gestión eficiente de pacientes, citas, comunicaciones y documentación.
 
+## Características Principales
+
+- **Gestión de Pacientes**: Registro y seguimiento de pacientes
+- **Agenda de Citas**: Calendario interactivo con gestión de disponibilidad
+- **Comunicaciones**: Sistema de plantillas de mensajes personalizables
+- **Documentación**: Gestión de formularios de consentimiento
+- **Interfaz Responsiva**: Diseño adaptable para todos los dispositivos
+
+## Tecnologías Utilizadas
+
+- **Frontend**: React + TypeScript, TailwindCSS, Shadcn UI
+- **Backend**: Express.js, Node.js
+- **Base de Datos**: PostgreSQL con Drizzle ORM
+- **Autenticación**: Sistema de sesiones seguro
+
+## Requisitos del Sistema
+
+- Node.js 18+
+- PostgreSQL
+
+## Instalación
+
+1. Clona el repositorio
+2. Instala las dependencias:
+```bash
+npm install
+```
+3. Configura las variables de entorno
+4. Inicializa la base de datos:
+```bash
+npm run db:push
+```
+5. Inicia el servidor de desarrollo:
+```bash
+npm run dev
+```
+
+## Estructura del Proyecto
+
+```
+├── client/          # Frontend React
+├── server/          # Backend Express
+├── shared/          # Código compartido
+└── ...
+```
+
+## Estado Actual
+
+### Implementado ✅
+- Sistema de autenticación completo
+- Gestión de perfiles de usuario
+- Calendario de citas
+- Sistema de mensajes
+- Formularios de consentimiento
+- Interfaz responsiva
+
+### En Desarrollo 🚧
+- Integración con IA para mensajes
+- Sistema de notificaciones
+- Reportes y estadísticas
+- Sesiones remotas
+- Mejoras de seguridad
+
+## Licencia
+
+Este proyecto está bajo la licencia MIT.
+
 ## Esquema de la Base de Datos
 
 ### Tablas
@@ -69,68 +136,6 @@ PsiConnect es una plataforma minimalista diseñada específicamente para psicól
    - specialty (texto)
    - message (texto, opcional)
    - created_at (timestamp con valor por defecto)
-
-## Estado Actual del Proyecto
-
-### Características Implementadas ✅
-
-- **Estructura del Proyecto**
-  - Frontend con React + TypeScript
-  - Backend con Express
-  - Base de datos PostgreSQL
-  - TailwindCSS con componentes de Shadcn UI
-
-- **Autenticación de Usuarios**
-  - Registro de psicólogos
-  - Inicio de sesión
-  - Cierre de sesión
-  - Rutas protegidas
-
-- **Componentes UI**
-  - Header con navegación adaptativa
-  - Footer
-  - Diseño responsivo
-  - Temas personalizados
-
-- **Páginas Principales**
-  - Página de inicio
-  - Página de registro
-  - Página de inicio de sesión
-  - Dashboard
-  - Perfil de usuario
-  - Gestión de citas
-  - Mensajes/comunicaciones
-  - Formularios de consentimiento
-
-- **Componentes Especializados**
-  - Calendario de citas (AppointmentCalendar)
-  - Selección de franjas horarias (TimeSlots)
-  - Plantillas de mensajes (MessageTemplates)
-  - Formularios de consentimiento (ConsentForm)
-
-### Características Pendientes 🚧
-
-- **Base de Datos**
-  - Migración completa a PostgreSQL (actualmente usando almacenamiento en memoria)
-  - Implementación de relaciones entre tablas
-  - Optimización de consultas
-
-- **Funcionalidades Claves**
-  - Implementación de la inteligencia artificial para crear mensajes personalizados
-  - Sistema de notificaciones para citas y recordatorios
-  - Reportes y estadísticas de pacientes
-  - Integración de videollamadas para sesiones remotas
-
-- **Seguridad y Privacidad**
-  - Encriptación de datos sensibles
-  - Cumplimiento con regulaciones de información médica
-  - Políticas de retención de datos
-  - Auditoría de acceso a información
-
-- **Experiencia de Usuario**
-  - Recorrido de onboarding para nuevos psicólogos
-  - Tutoriales interactivos para las funcionalidades
-  - Mejoras en la accesibilidad
 
 ## Guía de Inicio Rápido
 
@@ -204,7 +209,6 @@ PsiConnect es una plataforma minimalista diseñada específicamente para psicól
 5. Agregar funcionalidades para la gestión de historias clínicas
 
 ## Tecnologías Utilizadas
-
 - **Frontend**: React, TypeScript, TailwindCSS, TanStack Query
 - **Backend**: Express, Node.js, Passport
 - **Base de Datos**: PostgreSQL, Drizzle ORM
