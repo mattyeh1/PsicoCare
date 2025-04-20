@@ -48,10 +48,27 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Copy, MessageSquare, Wand2, Sparkles, RocketIcon } from "lucide-react";
-import { MessageTemplate, Patient } from "@shared/schema";
+import { 
+  Plus, 
+  Pencil, 
+  Copy, 
+  MessageSquare, 
+  Wand2, 
+  Sparkles, 
+  RocketIcon, 
+  Send, 
+  MailOpen, 
+  MailX,
+  Inbox, 
+  CheckCircle,
+  Clock
+} from "lucide-react";
+import { MessageTemplate, Patient, Message } from "@shared/schema";
 import MessageTemplates from "@/components/messaging/MessageTemplates";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 // Form schema for creating message templates
 const templateFormSchema = z.object({
@@ -171,6 +188,22 @@ const Messages = () => {
     queryKey: ["/api/patients"],
     // No sobrescribir el queryFn por defecto
     enabled: !!user, // Solo ejecutar si el usuario está autenticado
+    retry: false,
+    refetchOnWindowFocus: true
+  });
+  
+  // Fetch received messages
+  const { data: receivedMessages, isLoading: receivedMessagesLoading } = useQuery({
+    queryKey: ["/api/messages/received"],
+    enabled: !!user,
+    retry: false,
+    refetchOnWindowFocus: true
+  });
+  
+  // Fetch sent messages
+  const { data: sentMessages, isLoading: sentMessagesLoading } = useQuery({
+    queryKey: ["/api/messages/sent"],
+    enabled: !!user,
     retry: false,
     refetchOnWindowFocus: true
   });
@@ -371,29 +404,40 @@ const Messages = () => {
     createTemplateMutation.mutate(templateData);
   };
 
-  // Submit message form (this would connect to an email service in a real application)
+  // Submit message form to send a message to a patient
   const onSubmitMessage = async (values: z.infer<typeof messageFormSchema>) => {
     setIsLoading(true);
     
     try {
-      // This is where you would call the API to send the message
-      // Since we don't have an actual email-sending API, we'll just show a success message
+      // Prepare the message data
+      const messageData = {
+        recipient_id: parseInt(values.patient_id),
+        content: processMessage(values.message, values.patient_id),
+        subject: values.subject,
+        sent_at: new Date(),
+        is_system_message: false,
+        related_appointment_id: null,
+        parent_message_id: null
+      };
       
-      setTimeout(() => {
-        toast({
-          title: "Mensaje enviado",
-          description: "Tu mensaje ha sido enviado exitosamente.",
-        });
-        setIsComposing(false);
-        messageForm.reset();
-        setIsLoading(false);
-      }, 1000);
+      // Send the message using the API
+      await apiRequest("POST", "/api/messages", messageData);
+      
+      toast({
+        title: "Mensaje enviado",
+        description: "Tu mensaje ha sido enviado exitosamente al paciente.",
+      });
+      
+      setIsComposing(false);
+      messageForm.reset();
     } catch (error) {
+      console.error("Error al enviar mensaje:", error);
       toast({
         title: "Error",
         description: "No se pudo enviar el mensaje. Inténtalo de nuevo.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -433,6 +477,77 @@ const Messages = () => {
     return processedContent;
   };
 
+  // Mark message as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      return apiRequest("PATCH", `/api/messages/${messageId}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/received"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo marcar el mensaje como leído.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete message mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      return apiRequest("DELETE", `/api/messages/${messageId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/received"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
+      toast({
+        title: "Mensaje eliminado",
+        description: "El mensaje ha sido eliminado exitosamente.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el mensaje.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Format date for display
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return "Fecha desconocida";
+    try {
+      return format(new Date(date), "d 'de' MMMM, yyyy - HH:mm", { locale: es });
+    } catch (e) {
+      return "Fecha inválida";
+    }
+  };
+
+  // Handle mark as read
+  const handleMarkAsRead = (messageId: number) => {
+    markAsReadMutation.mutate(messageId);
+  };
+
+  // Handle delete message
+  const handleDeleteMessage = (messageId: number) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este mensaje?")) {
+      deleteMessageMutation.mutate(messageId);
+    }
+  };
+
+  // Get user data for display
+  const getUserName = (userId: number) => {
+    if (user && userId === user.id) return `Tú (${user.full_name})`;
+    if (patients) {
+      const patient = patients.find(p => p.id === userId);
+      if (patient) return patient.name;
+    }
+    return `Usuario #${userId}`;
+  };
+
   return (
     <div className="container py-8">
       <div className="flex flex-col gap-8">
@@ -459,6 +574,156 @@ const Messages = () => {
             </Button>
           </div>
         </div>
+        
+        {/* Mensajes Tab */}
+        <Tabs defaultValue="received" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="received">
+              <Inbox className="h-4 w-4 mr-2" />
+              Mensajes recibidos
+              {receivedMessages?.filter(m => !m.read_at).length > 0 && (
+                <Badge className="ml-2" variant="destructive">
+                  {receivedMessages.filter(m => !m.read_at).length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="sent">
+              <Send className="h-4 w-4 mr-2" />
+              Mensajes enviados
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Mensajes recibidos */}
+          <TabsContent value="received">
+            {receivedMessagesLoading ? (
+              <div className="flex justify-center items-center h-40">
+                <p>Cargando mensajes...</p>
+              </div>
+            ) : receivedMessages?.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center h-40">
+                  <MailOpen className="h-10 w-10 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No tienes mensajes recibidos</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {receivedMessages?.map((message) => (
+                  <Card key={message.id} className={message.read_at ? "" : "border-primary"}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="flex items-center">
+                            {!message.read_at && (
+                              <Badge variant="secondary" className="mr-2">Nuevo</Badge>
+                            )}
+                            {message.subject}
+                          </CardTitle>
+                          <CardDescription>
+                            De: {getUserName(message.sender_id)} | {formatDate(message.sent_at)}
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-1">
+                          {!message.read_at && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleMarkAsRead(message.id)}
+                              title="Marcar como leído"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleDeleteMessage(message.id)}
+                            title="Eliminar mensaje"
+                          >
+                            <MailX className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-between pt-0">
+                      {message.read_at ? (
+                        <p className="text-xs text-muted-foreground flex items-center">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Leído el {formatDate(message.read_at)}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          No leído
+                        </p>
+                      )}
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          {/* Mensajes enviados */}
+          <TabsContent value="sent">
+            {sentMessagesLoading ? (
+              <div className="flex justify-center items-center h-40">
+                <p>Cargando mensajes...</p>
+              </div>
+            ) : sentMessages?.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center h-40">
+                  <Send className="h-10 w-10 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No has enviado ningún mensaje aún</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {sentMessages?.map((message) => (
+                  <Card key={message.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{message.subject}</CardTitle>
+                          <CardDescription>
+                            Para: {getUserName(message.recipient_id)} | {formatDate(message.sent_at)}
+                          </CardDescription>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleDeleteMessage(message.id)}
+                          title="Eliminar mensaje"
+                        >
+                          <MailX className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-between pt-0">
+                      {message.read_at ? (
+                        <p className="text-xs text-muted-foreground flex items-center">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Leído el {formatDate(message.read_at)}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          No leído
+                        </p>
+                      )}
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Create template dialog */}
         <Dialog open={isCreatingTemplate} onOpenChange={setIsCreatingTemplate}>

@@ -10,6 +10,7 @@ import {
   insertConsentFormSchema,
   insertPatientConsentSchema,
   insertContactRequestSchema,
+  insertMessageSchema,
   users,
   patients,
   appointments,
@@ -699,6 +700,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error al sugerir título:", error);
       res.status(500).json({ message: "Error al sugerir un título para la plantilla" });
+    }
+  });
+
+  // Messages routes
+  app.get("/api/messages", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const includeDeleted = req.query.includeDeleted === "true";
+      const messages = await storage.getMessagesForUser(userId, includeDeleted);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error al obtener mensajes:", error);
+      res.status(500).json({ message: "Error al obtener los mensajes" });
+    }
+  });
+
+  app.get("/api/messages/sent", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const includeDeleted = req.query.includeDeleted === "true";
+      const messages = await storage.getSentMessages(userId, includeDeleted);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error al obtener mensajes enviados:", error);
+      res.status(500).json({ message: "Error al obtener los mensajes enviados" });
+    }
+  });
+
+  app.get("/api/messages/received", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const includeDeleted = req.query.includeDeleted === "true";
+      const messages = await storage.getReceivedMessages(userId, includeDeleted);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error al obtener mensajes recibidos:", error);
+      res.status(500).json({ message: "Error al obtener los mensajes recibidos" });
+    }
+  });
+
+  app.get("/api/messages/conversation/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const userOneId = (req.user as any).id;
+      const userTwoId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userTwoId)) {
+        return res.status(400).json({ message: "ID de usuario inválido" });
+      }
+      
+      const conversation = await storage.getConversation(userOneId, userTwoId);
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error al obtener conversación:", error);
+      res.status(500).json({ message: "Error al obtener la conversación" });
+    }
+  });
+
+  app.post("/api/messages", isAuthenticated, validateRequest(insertMessageSchema), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const messageData = {
+        ...req.body,
+        sender_id: userId
+      };
+      
+      const message = await storage.createMessage(messageData);
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error al crear mensaje:", error);
+      res.status(500).json({ message: "Error al crear el mensaje" });
+    }
+  });
+
+  app.patch("/api/messages/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.id, 10);
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ message: "ID de mensaje inválido" });
+      }
+      
+      // Verificar que el usuario es el destinatario
+      const message = await storage.getMessage(messageId);
+      if (!message) {
+        return res.status(404).json({ message: "Mensaje no encontrado" });
+      }
+      
+      if (message.recipient_id !== (req.user as any).id) {
+        return res.status(403).json({ message: "No estás autorizado para marcar este mensaje como leído" });
+      }
+      
+      const updatedMessage = await storage.markAsRead(messageId);
+      res.json(updatedMessage);
+    } catch (error) {
+      console.error("Error al marcar mensaje como leído:", error);
+      res.status(500).json({ message: "Error al marcar el mensaje como leído" });
+    }
+  });
+
+  app.delete("/api/messages/:id", isAuthenticated, async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.id, 10);
+      const userId = (req.user as any).id;
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ message: "ID de mensaje inválido" });
+      }
+      
+      // La función deleteMessage ya verifica que el usuario sea remitente o destinatario
+      await storage.deleteMessage(messageId, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error al eliminar mensaje:", error);
+      res.status(500).json({ message: "Error al eliminar el mensaje" });
     }
   });
 
