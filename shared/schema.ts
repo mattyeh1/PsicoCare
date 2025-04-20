@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enum for appointment status
-export const appointmentStatusEnum = pgEnum('appointment_status', ['scheduled', 'completed', 'cancelled', 'missed']);
+export const appointmentStatusEnum = pgEnum('appointment_status', ['pending', 'approved', 'scheduled', 'completed', 'cancelled', 'missed', 'rejected']);
 
 // Enum for message templates
 export const messageTypeEnum = pgEnum('message_type', ['appointment_reminder', 'follow_up', 'welcome', 'cancellation', 'rescheduling', 'custom']);
