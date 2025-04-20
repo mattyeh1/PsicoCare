@@ -35,12 +35,7 @@ export async function generateMessage(params: MessageGenerationParams): Promise<
     // Asegurar que la sesión esté activa
     await ensureAuthenticated();
     
-    const response = await apiRequest("POST", "/api/ai/generate-message", params, {
-      credentials: 'include', // Asegurar que se envían las cookies
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await apiRequest("POST", "/api/ai/generate-message", params);
     
     if (!response.ok) {
       if (response.status === 401) {
@@ -65,12 +60,7 @@ export async function improveMessage(message: string, instructions: string): Pro
     // Asegurar que la sesión esté activa
     await ensureAuthenticated();
     
-    const response = await apiRequest("POST", "/api/ai/improve-message", { message, instructions }, {
-      credentials: 'include', // Asegurar que se envían las cookies
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await apiRequest("POST", "/api/ai/improve-message", { message, instructions });
     
     if (!response.ok) {
       if (response.status === 401) {
@@ -95,12 +85,7 @@ export async function suggestTitle(content: string): Promise<string> {
     // Asegurar que la sesión esté activa
     await ensureAuthenticated();
     
-    const response = await apiRequest("POST", "/api/ai/suggest-title", { content }, {
-      credentials: 'include', // Asegurar que se envían las cookies
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await apiRequest("POST", "/api/ai/suggest-title", { content });
     
     if (!response.ok) {
       if (response.status === 401) {

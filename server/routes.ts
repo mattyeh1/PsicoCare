@@ -29,10 +29,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const isAuthenticated = (req: Request, res: Response, next: any) => {
     // Verify if session is authenticated and user exists
     if (req.isAuthenticated() && req.user && req.user.id) {
-      // Update activity timestamp to keep session alive
-      if (req.session) {
-        req.session.lastActivity = Date.now();
-      }
+      // Log authenticated access
+      console.log(`Usuario autenticado: ${req.user.id} - ruta: ${req.path}`);
       return next();
     }
     
@@ -41,13 +39,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (isApiRequest) {
       // For API requests, return JSON response
+      console.log(`Acceso no autorizado a: ${req.path}`);
       return res.status(401).json({ 
         error: "No autorizado", 
         message: "La sesión ha expirado o no está autenticada"
       });
     } else {
-      // For page requests, redirect to login
-      return res.redirect('/login');
+      // For page requests, redirect to login (handled by frontend)
+      return res.status(401).json({ 
+        error: "No autorizado", 
+        redirect: "/auth"
+      });
     }
   };
 
