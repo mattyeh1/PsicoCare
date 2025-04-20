@@ -107,8 +107,9 @@ const MessageList = ({
     setSelectedMessage(message);
     setShowMessageDetail(true);
     
-    // If the message is unread and the current user is the recipient, mark it as read
+    // Si el mensaje es para mí y no ha sido leído, marcarlo como leído
     if (!message.read_at && currentUser?.id === message.recipient_id) {
+      console.log(`Marcando mensaje #${message.id} como leído (destinatario: ${message.recipient_id})`);
       markAsReadMutation.mutate(message.id);
     }
   };

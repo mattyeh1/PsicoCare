@@ -733,7 +733,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const includeDeleted = req.query.includeDeleted === "true";
+      console.log(`[API] Obteniendo mensajes recibidos para usuario #${userId}`);
+      
+      // Obtener solo mensajes donde el usuario es el DESTINATARIO, no el remitente
       const messages = await storage.getReceivedMessages(userId, includeDeleted);
+      
+      console.log(`[API] Mensajes recibidos encontrados: ${messages.length}`, messages);
       res.json(messages);
     } catch (error) {
       console.error("Error al obtener mensajes recibidos:", error);

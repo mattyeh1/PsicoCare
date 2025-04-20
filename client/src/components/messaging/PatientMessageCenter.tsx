@@ -127,8 +127,8 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
     refetchOnWindowFocus: true
   });
 
-  // Count unread messages
-  const unreadCount = receivedMessages?.filter(msg => !msg.read_at).length || 0;
+  // Count unread messages (solo los que son para mí)
+  const unreadCount = receivedMessages?.filter(msg => !msg.read_at && msg.recipient_id === user?.id).length || 0;
 
   return (
     <Card className="h-full">
@@ -180,7 +180,7 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
               </div>
             ) : (
               <MessageList 
-                messages={receivedMessages || []}
+                messages={(receivedMessages || []).filter(msg => msg.recipient_id === user?.id)}
                 currentUser={user}
                 emptyMessage="No has recibido ningún mensaje todavía."
               />
