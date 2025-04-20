@@ -174,6 +174,8 @@ export function setupAuth(app: Express) {
         
         // Asociamos al paciente con el psicólogo
         userData.psychologist_id = psychologist.id;
+        // Establecemos specialty como string vacío para pacientes
+        userData.specialty = '';
         console.log("Creando nuevo paciente asociado al psicólogo ID:", psychologist.id);
       }
       else {
