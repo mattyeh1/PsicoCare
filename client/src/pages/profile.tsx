@@ -308,6 +308,19 @@ const Profile = () => {
                       <h3 className="text-lg font-semibold border-b pb-2">Información de contacto</h3>
                       <div className="ml-4">
                         <p><strong>Email:</strong> {userData?.email}</p>
+                        {userData?.user_type === 'psychologist' && userData?.unique_code && (
+                          <div className="mt-2">
+                            <p className="mb-1"><strong>Código para pacientes:</strong></p>
+                            <div className="bg-primary/10 border border-primary/20 rounded-md p-3 flex flex-col md:flex-row justify-between items-center">
+                              <div className="text-2xl font-bold tracking-wider text-primary mb-2 md:mb-0">
+                                {userData.unique_code}
+                              </div>
+                              <div className="text-sm text-muted-foreground text-center md:text-right">
+                                Comparte este código con tus pacientes para que puedan conectarse contigo al registrarse.
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
