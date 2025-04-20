@@ -72,6 +72,7 @@ const ComposeMessage = ({
     try {
       // Prepare the message data
       const messageData = {
+        sender_id: currentUser.id,  // Añadir el ID del remitente
         recipient_id: recipientId,
         content: processMessage(values.message),
         subject: values.subject,
@@ -94,9 +95,20 @@ const ComposeMessage = ({
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error("Error al enviar mensaje:", error);
+      let errorMsg = "No se pudo enviar el mensaje. Inténtalo de nuevo.";
+      
+      // Intentar extraer un mensaje de error más específico
+      if (error instanceof Error) {
+        if (error.message.includes("Validation error")) {
+          errorMsg = `Error de validación: ${error.message}`;
+        } else {
+          errorMsg = `Error: ${error.message}`;
+        }
+      } 
+      
       toast({
         title: "Error",
-        description: "No se pudo enviar el mensaje. Inténtalo de nuevo.",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
