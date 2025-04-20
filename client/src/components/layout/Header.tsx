@@ -21,6 +21,18 @@ const Header = () => {
   const [location] = useLocation();
   const { user, isAuthenticated, logoutMutation, refetchUser } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Middleware intermedio para redirigir a pantalla adecuada según rol (si viene desde root)
+  useEffect(() => {
+    if (isAuthenticated && user && location === "/") {
+      // Redirigir a página principal según tipo de usuario
+      if (user.user_type === 'psychologist') {
+        window.location.href = "/dashboard";
+      } else {
+        window.location.href = "/patient-dashboard";
+      }
+    }
+  }, [isAuthenticated, user, location]);
 
   // Efecto para verificar el estado de autenticación cada vez que se muestra el Header
   // Esto ayuda a mantener la sesión actualizada y prevenir deslogueos inesperados
@@ -97,7 +109,7 @@ const Header = () => {
                 <DropdownMenuContent>
                   <DropdownMenuItem>
                     <div 
-                      onClick={() => window.location.href = "/dashboard"}
+                      onClick={() => window.location.href = user?.user_type === 'psychologist' ? "/dashboard" : "/patient-dashboard"}
                       className="flex items-center gap-2 cursor-pointer w-full"
                     >
                       <User className="h-4 w-4" />
@@ -113,33 +125,37 @@ const Header = () => {
                       <span>Perfil</span>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <div 
-                      onClick={() => window.location.href = "/appointments"}
-                      className="flex items-center gap-2 cursor-pointer w-full"
-                    >
-                      <Calendar className="h-4 w-4" />
-                      <span>Citas</span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <div 
-                      onClick={() => window.location.href = "/messages"}
-                      className="flex items-center gap-2 cursor-pointer w-full"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      <span>Mensajes</span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <div 
-                      onClick={() => window.location.href = "/consent-forms"}
-                      className="flex items-center gap-2 cursor-pointer w-full"
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>Consentimientos</span>
-                    </div>
-                  </DropdownMenuItem>
+                  {user?.user_type === 'psychologist' && (
+                    <>
+                      <DropdownMenuItem>
+                        <div 
+                          onClick={() => window.location.href = "/appointments"}
+                          className="flex items-center gap-2 cursor-pointer w-full"
+                        >
+                          <Calendar className="h-4 w-4" />
+                          <span>Citas</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <div 
+                          onClick={() => window.location.href = "/messages"}
+                          className="flex items-center gap-2 cursor-pointer w-full"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          <span>Mensajes</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <div 
+                          onClick={() => window.location.href = "/consent-forms"}
+                          className="flex items-center gap-2 cursor-pointer w-full"
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span>Consentimientos</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-red-500">
                     <LogOut className="h-4 w-4" />
                     <span>Cerrar sesión</span>
@@ -196,7 +212,7 @@ const Header = () => {
                   className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    window.location.href = "/dashboard";
+                    window.location.href = user?.user_type === 'psychologist' ? "/dashboard" : "/patient-dashboard";
                   }}
                 >
                   Dashboard
@@ -210,33 +226,37 @@ const Header = () => {
                 >
                   Perfil
                 </button>
-                <button 
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    window.location.href = "/appointments";
-                  }}
-                >
-                  Citas
-                </button>
-                <button 
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    window.location.href = "/messages";
-                  }}
-                >
-                  Mensajes
-                </button>
-                <button 
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    window.location.href = "/consent-forms";
-                  }}
-                >
-                  Consentimientos
-                </button>
+                {user?.user_type === 'psychologist' && (
+                  <>
+                    <button 
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        window.location.href = "/appointments";
+                      }}
+                    >
+                      Citas
+                    </button>
+                    <button 
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        window.location.href = "/messages";
+                      }}
+                    >
+                      Mensajes
+                    </button>
+                    <button 
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        window.location.href = "/consent-forms";
+                      }}
+                    >
+                      Consentimientos
+                    </button>
+                  </>
+                )}
                 <button 
                   onClick={() => {
                     handleLogout();
