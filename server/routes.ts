@@ -513,7 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Ruta para que un paciente solicite una cita
-  app.post("/api/my-appointments", isAuthenticated, validateRequest(insertAppointmentSchema), async (req, res) => {
+  app.post("/api/my-appointments", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const userType = (req.user as any).user_type;
@@ -536,22 +536,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Preparar los datos para la cita
+      // Validar los datos básicos necesarios
+      const { date, duration } = req.body;
+      if (!date) {
+        return res.status(400).json({
+          error: "Datos incompletos",
+          message: "Se requiere especificar una fecha para la cita"
+        });
+      }
+      
+      // Preparar los datos para la cita (con valores por defecto)
       const appointmentData = { 
-        ...req.body,
+        date: date,
+        duration: duration || 60,
         psychologist_id: patient.psychologist_id,
         patient_id: patient.id,
-        status: "pending" // Las citas solicitadas por pacientes están pendientes de aprobación
+        status: "pending", // Las citas solicitadas por pacientes están pendientes de aprobación
+        notes: req.body.notes || null
       };
+      
+      console.log(`Paciente #${userId} solicitando cita con datos:`, appointmentData);
       
       // Crear la cita
       const appointment = await storage.createAppointment(appointmentData);
+      
+      console.log(`Cita creada correctamente: ID #${appointment.id}`);
+      
       res.status(201).json(appointment);
     } catch (error) {
       console.error("Error al crear cita:", error);
       res.status(500).json({ 
         error: "Error del servidor", 
-        message: "No se pudo crear la cita"
+        message: "No se pudo crear la cita. " + (error instanceof Error ? error.message : String(error))
       });
     }
   });
