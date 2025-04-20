@@ -22,10 +22,24 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    // Verificar que el formato almacenado sea correcto
+    if (!stored.includes(".")) {
+      console.error("Formato de password almacenado incorrecto:", stored);
+      return false;
+    }
+    
+    const [hashed, salt] = stored.split(".");
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    
+    const result = timingSafeEqual(hashedBuf, suppliedBuf);
+    console.log(`Comparación de contraseñas: ${result ? 'exitosa' : 'fallida'}`);
+    return result;
+  } catch (error) {
+    console.error("Error al comparar contraseñas:", error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -51,11 +65,29 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
+      try {
+        console.log(`Verificando usuario: ${username}`);
+        const user = await storage.getUserByUsername(username);
+        
+        if (!user) {
+          console.log(`Usuario no encontrado: ${username}`);
+          return done(null, false);
+        }
+        
+        // Verificar contraseña
+        console.log(`Verificando contraseña para: ${username}`);
+        const passwordValid = await comparePasswords(password, user.password);
+        
+        if (!passwordValid) {
+          console.log(`Contraseña incorrecta para: ${username}`);
+          return done(null, false);
+        } 
+        
+        console.log(`Autenticación exitosa para: ${username}`);
         return done(null, user);
+      } catch (error) {
+        console.error("Error en estrategia de autenticación:", error);
+        return done(error as Error);
       }
     }),
   );
@@ -102,11 +134,40 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    // La autenticación fue exitosa, el usuario está en req.user
-    // Remover el password antes de enviar la respuesta
-    const { password, ...userWithoutPassword } = req.user as SelectUser;
-    res.status(200).json(userWithoutPassword);
+  app.post("/api/login", (req, res, next) => {
+    // Log para depuración
+    console.log("Intento de login:", req.body.username);
+    
+    passport.authenticate("local", (err: Error | null, user: SelectUser | false, info: any) => {
+      if (err) {
+        console.error("Error en autenticación:", err);
+        return next(err);
+      }
+      
+      if (!user) {
+        console.log("Usuario no autenticado:", req.body.username);
+        return res.status(401).json({ error: "Credenciales incorrectas" });
+      }
+      
+      // Si la autenticación es exitosa, establecer la sesión
+      req.login(user, (loginErr: Error | null) => {
+        if (loginErr) {
+          console.error("Error en login:", loginErr);
+          return next(loginErr);
+        }
+        
+        console.log("Login exitoso para:", user.username);
+        // Remover el password antes de enviar la respuesta
+        const { password, ...userWithoutPassword } = user as SelectUser;
+        
+        // Tocar la sesión para actualizarla
+        if (req.session) {
+          req.session.touch();
+        }
+        
+        return res.status(200).json(userWithoutPassword);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
