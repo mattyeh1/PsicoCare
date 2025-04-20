@@ -462,19 +462,19 @@ const Home = () => {
                   <div className="prose prose-indigo mx-auto">
                     <h3 className="text-2xl font-semibold text-neutral-800 font-serif">Queremos hablar contigo porque:</h3>
                     <ul className="mt-6 space-y-4 text-base">
-                      <li className="flex items-start">
+                      <li className="flex items-center">
                         <div className="flex-shrink-0">
                           <Check className="text-primary-500 h-5 w-5" />
                         </div>
                         <p className="ml-3">Necesitamos validar que estemos resolviendo los problemas correctos</p>
                       </li>
-                      <li className="flex items-start">
+                      <li className="flex items-center">
                         <div className="flex-shrink-0">
                           <Check className="text-primary-500 h-5 w-5" />
                         </div>
                         <p className="ml-3">Queremos escuchar tus ideas y sugerencias para incorporarlas</p>
                       </li>
-                      <li className="flex items-start">
+                      <li className="flex items-center">
                         <div className="flex-shrink-0">
                           <Check className="text-primary-500 h-5 w-5" />
                         </div>
