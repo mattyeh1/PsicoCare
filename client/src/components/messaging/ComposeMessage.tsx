@@ -172,7 +172,7 @@ const ComposeMessage = ({
               <FormLabel>Mensaje</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder={`Escribe tu mensaje para ${recipientName}...`}
+                  placeholder="Escribe tu mensaje..."
                   className="min-h-[150px]"
                   {...field}
                   disabled={isLoading}
