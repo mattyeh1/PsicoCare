@@ -52,6 +52,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   };
+  
+  // Role-based authorization middleware
+  const isPsychologist = (req: Request, res: Response, next: any) => {
+    if (req.isAuthenticated() && req.user && req.user.id && (req.user as any).user_type === 'psychologist') {
+      return next();
+    }
+    console.log(`Acceso denegado a usuario no psicólogo: ${(req.user as any)?.id} - ruta: ${req.path}`);
+    return res.status(403).json({ 
+      error: "Acceso denegado", 
+      message: "Esta función está disponible solo para psicólogos"
+    });
+  };
 
   // Error handling middleware for Zod validation
   const validateRequest = (schema: any) => {
@@ -108,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Patient routes
-  app.get("/api/patients", isAuthenticated, async (req, res) => {
+  app.get("/api/patients", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const patients = await storage.getPatientsForPsychologist(userId);
@@ -118,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/patients", isAuthenticated, validateRequest(insertPatientSchema), async (req, res) => {
+  app.post("/api/patients", isAuthenticated, isPsychologist, validateRequest(insertPatientSchema), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       console.log("Creando paciente con datos:", req.body);
@@ -132,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/patients/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/patients/:id", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const patient = await storage.getPatient(parseInt(req.params.id));
@@ -153,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Appointment routes
-  app.get("/api/appointments", isAuthenticated, async (req, res) => {
+  app.get("/api/appointments", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const appointments = await storage.getAppointmentsForPsychologist(userId);
@@ -163,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/appointments", isAuthenticated, validateRequest(insertAppointmentSchema), async (req, res) => {
+  app.post("/api/appointments", isAuthenticated, isPsychologist, validateRequest(insertAppointmentSchema), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const appointmentData = { ...req.body, psychologist_id: userId };
@@ -174,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/appointments/:id", isAuthenticated, validateRequest(insertAppointmentSchema.partial()), async (req, res) => {
+  app.put("/api/appointments/:id", isAuthenticated, isPsychologist, validateRequest(insertAppointmentSchema.partial()), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const appointmentId = parseInt(req.params.id);
@@ -197,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Availability routes
-  app.get("/api/availability", isAuthenticated, async (req, res) => {
+  app.get("/api/availability", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const availabilitySlots = await storage.getAvailabilityForPsychologist(userId);
@@ -207,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/availability", isAuthenticated, validateRequest(insertAvailabilitySchema), async (req, res) => {
+  app.post("/api/availability", isAuthenticated, isPsychologist, validateRequest(insertAvailabilitySchema), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const availabilityData = { ...req.body, psychologist_id: userId };
