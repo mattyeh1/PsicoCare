@@ -52,6 +52,16 @@ export interface IStorage {
   getMessageTemplatesForPsychologist(psychologistId: number): Promise<MessageTemplate[]>;
   createMessageTemplate(template: InsertMessageTemplate): Promise<MessageTemplate>;
   
+  // Messages methods
+  getMessage(id: number): Promise<Message | undefined>;
+  getMessagesForUser(userId: number, includeDeleted?: boolean): Promise<Message[]>;
+  getSentMessages(userId: number, includeDeleted?: boolean): Promise<Message[]>;
+  getReceivedMessages(userId: number, includeDeleted?: boolean): Promise<Message[]>;
+  getConversation(userOneId: number, userTwoId: number): Promise<Message[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  markAsRead(messageId: number): Promise<Message>;
+  deleteMessage(messageId: number, deletedBy: number): Promise<void>;
+  
   // Consent form methods
   getConsentForm(id: number): Promise<ConsentForm | undefined>;
   getConsentFormsForPsychologist(psychologistId: number): Promise<ConsentForm[]>;

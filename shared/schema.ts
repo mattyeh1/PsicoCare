@@ -167,6 +167,29 @@ export const patient_consents = pgTable("patient_consents", {
   };
 });
 
+// Message table for patient-psychologist communication
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  sender_id: integer("sender_id").notNull().references(() => users.id),
+  recipient_id: integer("recipient_id").notNull().references(() => users.id),
+  subject: varchar("subject", { length: 200 }).notNull(),
+  content: text("content").notNull(),
+  sent_at: timestamp("sent_at").defaultNow().notNull(),
+  read_at: timestamp("read_at"),
+  is_system_message: boolean("is_system_message").default(false).notNull(),
+  related_appointment_id: integer("related_appointment_id").references(() => appointments.id),
+  parent_message_id: integer("parent_message_id").references(() => messages.id),
+  is_deleted_by_sender: boolean("is_deleted_by_sender").default(false).notNull(),
+  is_deleted_by_recipient: boolean("is_deleted_by_recipient").default(false).notNull(),
+}, (table) => {
+  return {
+    senderIdx: index("messages_sender_idx").on(table.sender_id),
+    recipientIdx: index("messages_recipient_idx").on(table.recipient_id),
+    sentAtIdx: index("messages_sent_at_idx").on(table.sent_at),
+    appointmentIdx: index("messages_appointment_idx").on(table.related_appointment_id),
+  };
+});
+
 // Contact requests table
 export const contact_requests = pgTable("contact_requests", {
   id: serial("id").primaryKey(),
@@ -272,6 +295,15 @@ export const insertPatientConsentSchema = createInsertSchema(patient_consents).o
   ])
 });
 
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  sent_at: true,
+  read_at: true,
+  is_system_message: true,
+  is_deleted_by_sender: true,
+  is_deleted_by_recipient: true
+});
+
 export const insertContactRequestSchema = createInsertSchema(contact_requests).omit({ 
   id: true, 
   created_at: true,
@@ -304,6 +336,9 @@ export type InsertConsentForm = z.infer<typeof insertConsentFormSchema>;
 
 export type PatientConsent = typeof patient_consents.$inferSelect;
 export type InsertPatientConsent = z.infer<typeof insertPatientConsentSchema>;
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 export type ContactRequest = typeof contact_requests.$inferSelect;
 export type InsertContactRequest = z.infer<typeof insertContactRequestSchema>;
