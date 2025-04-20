@@ -74,6 +74,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingPatient, setIsAddingPatient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const isPsychologist = user?.user_type === 'psychologist';
 
   // Fetch user profile data
   const { data: userData, isLoading: userLoading } = useQuery({
@@ -238,7 +239,9 @@ const Profile = () => {
         <div>
           <h1 className="text-3xl font-bold">Mi Perfil</h1>
           <p className="text-muted-foreground">
-            Gestiona tu información profesional y tus pacientes
+            {isPsychologist 
+              ? "Gestiona tu información profesional y tus pacientes" 
+              : "Gestiona tu información personal"}
           </p>
         </div>
 
@@ -281,8 +284,8 @@ const Profile = () => {
         
         <Tabs defaultValue="profile" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="profile">Información profesional</TabsTrigger>
-            <TabsTrigger value="patients">Pacientes</TabsTrigger>
+            <TabsTrigger value="profile">{isPsychologist ? "Información profesional" : "Información personal"}</TabsTrigger>
+            {isPsychologist && <TabsTrigger value="patients">Pacientes</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="profile" className="space-y-4">
@@ -290,9 +293,9 @@ const Profile = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Perfil profesional</CardTitle>
+                    <CardTitle>{isPsychologist ? "Perfil profesional" : "Perfil personal"}</CardTitle>
                     <CardDescription>
-                      Actualiza tu información personal y profesional
+                      Actualiza tu información {isPsychologist ? "personal y profesional" : "personal"}
                     </CardDescription>
                   </div>
                   <Button 
@@ -328,23 +331,27 @@ const Profile = () => {
                     </div>
                     
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold border-b pb-2">Educación y certificaciones</h3>
-                      <div className="space-y-2">
-                        {userData?.education && (
-                          <div className="ml-4">
-                            <p className="whitespace-pre-line">{userData.education}</p>
+                      {isPsychologist && (
+                        <>
+                          <h3 className="text-lg font-semibold border-b pb-2">Educación y certificaciones</h3>
+                          <div className="space-y-2">
+                            {userData?.education && (
+                              <div className="ml-4">
+                                <p className="whitespace-pre-line">{userData.education}</p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      
-                      <h3 className="text-lg font-semibold border-b pb-2">Certificaciones</h3>
-                      <div className="space-y-2">
-                        {userData?.certifications && (
-                          <div className="ml-4">
-                            <p className="whitespace-pre-line">{userData.certifications}</p>
+                          
+                          <h3 className="text-lg font-semibold border-b pb-2">Certificaciones</h3>
+                          <div className="space-y-2">
+                            {userData?.certifications && (
+                              <div className="ml-4">
+                                <p className="whitespace-pre-line">{userData.certifications}</p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </>
+                      )}
                       
                       <h3 className="text-lg font-semibold border-b pb-2">Información de contacto</h3>
                       <div className="ml-4">
@@ -392,91 +399,95 @@ const Profile = () => {
                         )}
                       />
                       
-                      <FormField
-                        control={form.control}
-                        name="specialty"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Especialidad</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                              disabled={isLoading}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecciona tu especialidad" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Psicología Clínica">Psicología Clínica</SelectItem>
-                                <SelectItem value="Psicoterapia">Psicoterapia</SelectItem>
-                                <SelectItem value="Neuropsicología">Neuropsicología</SelectItem>
-                                <SelectItem value="Psicología Infantil">Psicología Infantil</SelectItem>
-                                <SelectItem value="Otra especialidad">Otra especialidad</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="bio"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Biografía</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Escribe una breve descripción profesional"
-                                className="min-h-24"
-                                {...field}
-                                disabled={isLoading}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="education"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Educación</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Detalla tu formación académica"
-                                className="min-h-24"
-                                {...field}
-                                disabled={isLoading}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="certifications"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Certificaciones</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Lista tus certificaciones o especializaciones"
-                                className="min-h-24"
-                                {...field}
-                                disabled={isLoading}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {isPsychologist && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="specialty"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Especialidad</FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange} 
+                                  defaultValue={field.value}
+                                  disabled={isLoading}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecciona tu especialidad" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="Psicología Clínica">Psicología Clínica</SelectItem>
+                                    <SelectItem value="Psicoterapia">Psicoterapia</SelectItem>
+                                    <SelectItem value="Neuropsicología">Neuropsicología</SelectItem>
+                                    <SelectItem value="Psicología Infantil">Psicología Infantil</SelectItem>
+                                    <SelectItem value="Otra especialidad">Otra especialidad</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="bio"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Biografía</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Escribe una breve descripción profesional"
+                                    className="min-h-24"
+                                    {...field}
+                                    disabled={isLoading}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="education"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Educación</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Detalla tu formación académica"
+                                    className="min-h-24"
+                                    {...field}
+                                    disabled={isLoading}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="certifications"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Certificaciones</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Lista tus certificaciones o especializaciones"
+                                    className="min-h-24"
+                                    {...field}
+                                    disabled={isLoading}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
                       
                       <FormField
                         control={form.control}
