@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/availability/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/availability/:id", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const availabilityId = parseInt(req.params.id);
@@ -253,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Message template routes
-  app.get("/api/message-templates", isAuthenticated, async (req, res) => {
+  app.get("/api/message-templates", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const templates = await storage.getMessageTemplatesForPsychologist(userId);
@@ -263,7 +263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/message-templates", isAuthenticated, validateRequest(insertMessageTemplateSchema), async (req, res) => {
+  app.post("/api/message-templates", isAuthenticated, isPsychologist, validateRequest(insertMessageTemplateSchema), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const templateData = { ...req.body, psychologist_id: userId };
@@ -275,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Consent form routes
-  app.get("/api/consent-forms", isAuthenticated, async (req, res) => {
+  app.get("/api/consent-forms", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const forms = await storage.getConsentFormsForPsychologist(userId);
@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/consent-forms", isAuthenticated, validateRequest(insertConsentFormSchema), async (req, res) => {
+  app.post("/api/consent-forms", isAuthenticated, isPsychologist, validateRequest(insertConsentFormSchema), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const formData = { ...req.body, psychologist_id: userId };
@@ -297,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Patient consent routes
-  app.get("/api/patient-consents", isAuthenticated, async (req, res) => {
+  app.get("/api/patient-consents", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const patientConsents = await storage.getPatientConsentsForPsychologist(userId);
@@ -307,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/patient-consents", isAuthenticated, validateRequest(insertPatientConsentSchema), async (req, res) => {
+  app.post("/api/patient-consents", isAuthenticated, isPsychologist, validateRequest(insertPatientConsentSchema), async (req, res) => {
     try {
       const patientConsent = await storage.createPatientConsent(req.body);
       res.status(201).json(patientConsent);
@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // OpenAI integration routes
-  app.post("/api/ai/generate-message", isAuthenticated, async (req, res) => {
+  app.post("/api/ai/generate-message", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const params: MessageGenerationParams = req.body;
       // Obtener el nombre del psicólogo si no se proporciona
@@ -343,7 +343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ai/improve-message", isAuthenticated, async (req, res) => {
+  app.post("/api/ai/improve-message", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const { message, instructions } = req.body;
       if (!message || !instructions) {
@@ -358,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ai/suggest-title", isAuthenticated, async (req, res) => {
+  app.post("/api/ai/suggest-title", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const { content } = req.body;
       if (!content) {
