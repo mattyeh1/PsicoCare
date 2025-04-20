@@ -58,10 +58,9 @@ El nombre del paciente es "${recipientName}".`;
 - Siguiendo las mejores prácticas de comunicación terapéutica`;
 
   try {
-    // El modelo gpt-4o es el más reciente y potente de OpenAI (lanzado después de tu conocimiento)
-    // el modelo "gpt-4o" fue lanzado el 13 de mayo de 2024. No lo cambies a menos que el usuario lo solicite explícitamente
+    // Usamos un modelo más compatible con la mayoría de las claves API
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
@@ -89,7 +88,7 @@ El nombre del paciente es "${recipientName}".`;
 export async function improveMessage(originalMessage: string, instructions: string): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // el modelo "gpt-4o" fue lanzado el 13 de mayo de 2024. No lo cambies a menos que el usuario lo solicite explícitamente
+      model: "gpt-3.5-turbo", // Usamos un modelo más compatible con la mayoría de claves API
       messages: [
         {
           role: "system",
@@ -117,7 +116,7 @@ export async function improveMessage(originalMessage: string, instructions: stri
 export async function suggestMessageTemplateTitle(content: string): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // el modelo "gpt-4o" fue lanzado el 13 de mayo de 2024. No lo cambies a menos que el usuario lo solicite explícitamente
+      model: "gpt-3.5-turbo", // Usamos un modelo más compatible con la mayoría de claves API
       messages: [
         {
           role: "system",
