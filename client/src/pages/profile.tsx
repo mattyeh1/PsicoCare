@@ -89,6 +89,10 @@ const Profile = () => {
           certifications: data.certifications || "",
           profile_image: data.profile_image || "",
         });
+        // Log para depuración
+        console.log("Datos de usuario recibidos:", JSON.stringify(data, null, 2));
+        console.log("Código de psicólogo:", data.unique_code);
+        console.log("Tipo de usuario:", data.user_type);
       }
     },
   });

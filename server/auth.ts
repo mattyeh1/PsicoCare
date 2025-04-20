@@ -273,4 +273,21 @@ export function setupAuth(app: Express) {
     const { password, ...userWithoutPassword } = req.user as SelectUser;
     res.json(userWithoutPassword);
   });
+  
+  // Endpoint para obtener el usuario autenticado (me = current user)
+  app.get("/api/auth/me", (req, res) => {    
+    // Verificar autenticación normal de Passport
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+    
+    // Si la sesión existe, actualizar la cookie para prolongar su duración
+    if (req.session) {
+      req.session.touch();
+    }
+    
+    // Remover el password antes de enviar la respuesta
+    const { password, ...userWithoutPassword } = req.user as SelectUser;
+    res.json(userWithoutPassword);
+  });
 }
