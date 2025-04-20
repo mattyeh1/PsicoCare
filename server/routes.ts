@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { 
   insertUserSchema,
@@ -766,6 +767,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const message = await storage.createMessage(messageData);
+      
+      // Broadcast the new message via WebSocket if the function is available
+      if (typeof (app as any).broadcastMessage === 'function') {
+        console.log(`[API] Broadcasting new message (ID: ${message.id}) via WebSocket`);
+        (app as any).broadcastMessage(message);
+      }
+      
       res.status(201).json(message);
     } catch (error) {
       console.error("Error al crear mensaje:", error);
@@ -818,5 +826,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Configure WebSocket server
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store connected clients with their user IDs
+  const clients = new Map<WebSocket, { userId?: number; userType?: string }>();
+
+  wss.on('connection', (ws) => {
+    console.log('[WebSocket] New connection established');
+    clients.set(ws, {});
+    
+    // Handle authentication message
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle authentication message
+        if (data.type === 'auth') {
+          console.log(`[WebSocket] Client authenticated: User #${data.userId}, Type: ${data.userType}`);
+          clients.set(ws, { 
+            userId: data.userId, 
+            userType: data.userType 
+          });
+        }
+        
+        // Handle client messages - broadcast to relevant recipients
+        if (data.type === 'message' && data.messageData) {
+          // Broadcast to relevant recipients based on the message data
+          broadcastMessage(data.messageData);
+        }
+      } catch (err) {
+        console.error('[WebSocket] Error processing message:', err);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      console.log('[WebSocket] Client disconnected');
+      clients.delete(ws);
+    });
+    
+    // Send initial connection confirmation
+    ws.send(JSON.stringify({ type: 'connected' }));
+  });
+  
+  // Function to broadcast messages to relevant users
+  function broadcastMessage(messageData: any) {
+    // Get sender and recipient IDs
+    const senderId = messageData.sender_id;
+    const recipientId = messageData.recipient_id;
+    
+    if (!senderId || !recipientId) {
+      console.error('[WebSocket] Invalid message data (missing sender or recipient)');
+      return;
+    }
+    
+    console.log(`[WebSocket] Broadcasting message: Sender #${senderId} to Recipient #${recipientId}`);
+    
+    // Broadcast to connected clients who are either the sender or recipient
+    clients.forEach((clientInfo, client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        const userId = clientInfo.userId;
+        if (userId === senderId || userId === recipientId) {
+          console.log(`[WebSocket] Sending notification to User #${userId}`);
+          client.send(JSON.stringify({
+            type: 'new_message',
+            message: {
+              id: messageData.id,
+              sender_id: senderId,
+              recipient_id: recipientId,
+              subject: messageData.subject,
+              sent_at: messageData.sent_at || new Date(),
+              is_notification: true
+            }
+          }));
+        }
+      }
+    });
+  }
+  
+  // Also expose the broadcastMessage function to be used by message creation API
+  (app as any).broadcastMessage = broadcastMessage;
+  
   return httpServer;
 }

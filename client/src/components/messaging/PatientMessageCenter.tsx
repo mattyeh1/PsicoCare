@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useToast } from "@/hooks/use-toast";
 import { Message, User } from "@shared/schema";
 import { 
   Card, 
@@ -12,7 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, MessageSquare, Send } from "lucide-react";
+import { Loader2, MessageSquare, Send, Wifi, WifiOff } from "lucide-react";
 import MessageList from "./MessageList";
 import ComposeMessage from "./ComposeMessage";
 
@@ -22,7 +24,70 @@ interface PatientMessageCenterProps {
 
 const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [wsConnectionStatus, setWsConnectionStatus] = useState('');
+  
+  // Configure WebSocket connection
+  const { 
+    status: webSocketStatus, 
+    sendMessage,
+    isConnected: wsConnected
+  } = useWebSocket('/ws', {
+    onOpen: () => {
+      // Send authentication message when connection is established
+      if (user) {
+        const authMsg = {
+          type: 'auth',
+          userId: user.id,
+          userType: user.user_type
+        };
+        sendMessage(authMsg);
+        setWsConnectionStatus('connected');
+      }
+    },
+    onMessage: (data) => {
+      console.log('[WebSocket] Received message:', data);
+      
+      // Handle new message notifications
+      if (data.type === 'new_message') {
+        // Play notification sound if recipient
+        if (data.message && data.message.recipient_id === user?.id) {
+          // Update the messages list by invalidating the query
+          queryClient.invalidateQueries({ queryKey: ['/api/messages/received'] });
+          
+          // Show toast notification
+          toast({
+            title: 'Nuevo mensaje',
+            description: `Has recibido un nuevo mensaje: ${data.message.subject || 'Sin asunto'}`,
+            duration: 5000,
+          });
+        } else if (data.message && data.message.sender_id === user?.id) {
+          // If I'm the sender, update sent messages
+          queryClient.invalidateQueries({ queryKey: ['/api/messages/sent'] });
+        }
+      }
+    },
+    onClose: () => {
+      setWsConnectionStatus('disconnected');
+    },
+    onError: () => {
+      setWsConnectionStatus('error');
+    }
+  });
+
+  // Send auth message when user changes
+  useEffect(() => {
+    if (wsConnected && user) {
+      const authMsg = {
+        type: 'auth',
+        userId: user.id,
+        userType: user.user_type
+      };
+      sendMessage(authMsg);
+    }
+  }, [wsConnected, user, sendMessage]);
   
   // Fetch received messages
   const { 
@@ -53,8 +118,15 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl">Mensajes</CardTitle>
+          <div className="flex flex-col">
+            <div className="flex items-center">
+              <CardTitle className="text-xl">Mensajes</CardTitle>
+              {wsConnected ? (
+                <Wifi className="ml-2 h-4 w-4 text-green-500" title="Conectado" />
+              ) : (
+                <WifiOff className="ml-2 h-4 w-4 text-gray-400" title="Desconectado" />
+              )}
+            </div>
             <CardDescription>
               Comunicación con tu psicólogo
             </CardDescription>
