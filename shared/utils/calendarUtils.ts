@@ -1,167 +1,163 @@
-import { Appointment, Patient } from '../schema';
+import { Appointment, Patient } from "../schema";
 
 /**
- * Generates an RFC5545 compliant iCalendar file content for a given appointment
+ * Genera un evento en formato iCalendar (RFC5545) para una cita
  * 
- * @param appointment The appointment data
- * @param patient The patient data
- * @param psychologistName The name of the psychologist
- * @returns A string containing the ICS file content
+ * @param appointment La información de la cita
+ * @param patient Los datos del paciente
+ * @param psychologistName El nombre del psicólogo
+ * @returns Un string con el contenido del archivo ICS
  */
 export function generateICalendarEvent(
   appointment: Appointment, 
   patient: Patient, 
   psychologistName: string
 ): string {
-  // Generate a unique ID for the event (RFC5545 compliant)
-  const eventUid = `appointment-${appointment.id}@psytherapist.app`;
-
-  // Format start and end dates to UTC format required by ICS
+  const formatDate = (date: Date): string => {
+    return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  };
+  
   const startDate = new Date(appointment.date);
   const endDate = new Date(startDate.getTime() + appointment.duration * 60000);
+  const now = new Date();
   
-  // Format date to YYYYMMDDTHHMMSSZ format
-  const formatDate = (date: Date): string => {
-    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d+/g, '');
-  };
-
-  // Create event description
-  const description = appointment.notes 
-    ? `Cita con ${patient.name}. Notas: ${appointment.notes}`
-    : `Cita con ${patient.name}`;
-
-  // Create location (video URL if available)
-  const location = appointment.video_url 
-    ? appointment.video_url 
-    : "Consulta online";
-
-  // Generate ICS content
-  const icsContent = [
+  // Generamos un UID único para el evento
+  const uid = `appointment-${appointment.id}-${Math.random().toString(36).substring(2, 11)}`;
+  
+  // Construimos la descripción con toda la información relevante
+  const description = `Cita con ${patient.name}\n` +
+    `Duración: ${appointment.duration} minutos\n` +
+    (appointment.notes ? `Notas: ${appointment.notes}\n` : '');
+    
+  // Creamos el evento en formato iCalendar
+  return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//PsyTherapist//Appointment Calendar//ES",
+    "PRODID:-//PsiConnect//Citas v1.0//ES",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${eventUid}`,
-    `DTSTAMP:${formatDate(new Date())}`,
+    `UID:${uid}`,
+    `DTSTAMP:${formatDate(now)}`,
     `DTSTART:${formatDate(startDate)}`,
     `DTEND:${formatDate(endDate)}`,
     `SUMMARY:Cita con ${psychologistName}`,
-    `DESCRIPTION:${description}`,
-    `LOCATION:${location}`,
+    `DESCRIPTION:${description.replace(/\n/g, "\\n")}`,
     "STATUS:CONFIRMED",
-    "TRANSP:OPAQUE",
+    `ORGANIZER;CN=${psychologistName}:mailto:noreply@psiconnect.com`,
+    `ATTENDEE;CN=${patient.name}:mailto:${patient.email || 'noreply@psiconnect.com'}`,
     "END:VEVENT",
-    "END:VCALENDAR",
+    "END:VCALENDAR"
   ].join("\r\n");
-
-  return icsContent;
 }
 
 /**
- * Generates a Google Calendar event URL for a given appointment
+ * Genera una URL para añadir el evento a Google Calendar
  * 
- * @param appointment The appointment data
- * @param patient The patient data
- * @param psychologistName The name of the psychologist
- * @returns A URL for adding the event to Google Calendar
+ * @param appointment La información de la cita
+ * @param patient Los datos del paciente
+ * @param psychologistName El nombre del psicólogo
+ * @returns Una URL para añadir el evento a Google Calendar
  */
 export function generateGoogleCalendarUrl(
   appointment: Appointment, 
   patient: Patient, 
   psychologistName: string
 ): string {
+  const formatGoogleDate = (date: Date): string => {
+    return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "Z");
+  };
+  
   const startDate = new Date(appointment.date);
   const endDate = new Date(startDate.getTime() + appointment.duration * 60000);
   
-  // Format dates for Google Calendar URL
-  const formatGoogleDate = (date: Date): string => {
-    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d+/g, '');
-  };
-
-  // Create event details
-  const title = encodeURIComponent(`Cita con ${psychologistName}`);
-  const description = appointment.notes 
-    ? encodeURIComponent(`Cita con ${patient.name}. Notas: ${appointment.notes}`)
-    : encodeURIComponent(`Cita con ${patient.name}`);
+  // Construimos la descripción
+  const description = `Cita con ${patient.name}\n` +
+    `Duración: ${appointment.duration} minutos\n` +
+    (appointment.notes ? `Notas: ${appointment.notes}\n` : '');
   
-  const location = appointment.video_url 
-    ? encodeURIComponent(appointment.video_url) 
-    : encodeURIComponent("Consulta online");
+  // Creamos los parámetros para la URL
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Cita con ${psychologistName}`,
+    dates: `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`,
+    details: description,
+  });
   
-  // Generate Google Calendar URL
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${description}&location=${location}&sf=true&output=xml`;
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 /**
- * Generates an Outlook.com calendar event URL for a given appointment
+ * Genera una URL para añadir el evento a Outlook Calendar
  * 
- * @param appointment The appointment data
- * @param patient The patient data
- * @param psychologistName The name of the psychologist
- * @returns A URL for adding the event to Outlook.com Calendar
+ * @param appointment La información de la cita
+ * @param patient Los datos del paciente
+ * @param psychologistName El nombre del psicólogo
+ * @returns Una URL para añadir el evento a Outlook Calendar
  */
 export function generateOutlookCalendarUrl(
   appointment: Appointment, 
   patient: Patient, 
   psychologistName: string
 ): string {
-  const startDate = new Date(appointment.date);
-  const endDate = new Date(startDate.getTime() + appointment.duration * 60000);
-  
-  // Format dates for Outlook Calendar URL
   const formatOutlookDate = (date: Date): string => {
     return date.toISOString();
   };
-
-  // Create event details
-  const title = encodeURIComponent(`Cita con ${psychologistName}`);
-  const description = appointment.notes 
-    ? encodeURIComponent(`Cita con ${patient.name}. Notas: ${appointment.notes}`)
-    : encodeURIComponent(`Cita con ${patient.name}`);
   
-  const location = appointment.video_url 
-    ? encodeURIComponent(appointment.video_url) 
-    : encodeURIComponent("Consulta online");
+  const startDate = new Date(appointment.date);
+  const endDate = new Date(startDate.getTime() + appointment.duration * 60000);
   
-  // Generate Outlook.com Calendar URL
-  return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${formatOutlookDate(startDate)}&enddt=${formatOutlookDate(endDate)}&body=${description}&location=${location}`;
+  // Construimos la descripción
+  const description = `Cita con ${patient.name}\n` +
+    `Duración: ${appointment.duration} minutos\n` +
+    (appointment.notes ? `Notas: ${appointment.notes}\n` : '');
+  
+  // Creamos los parámetros para la URL
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    startdt: formatOutlookDate(startDate),
+    enddt: formatOutlookDate(endDate),
+    subject: `Cita con ${psychologistName}`,
+    body: description,
+  });
+  
+  return `https://outlook.live.com/calendar/0/${params.toString()}`;
 }
 
 /**
- * Generates a Yahoo calendar event URL for a given appointment
+ * Genera una URL para añadir el evento a Yahoo Calendar
  * 
- * @param appointment The appointment data
- * @param patient The patient data
- * @param psychologistName The name of the psychologist
- * @returns A URL for adding the event to Yahoo Calendar
+ * @param appointment La información de la cita
+ * @param patient Los datos del paciente
+ * @param psychologistName El nombre del psicólogo
+ * @returns Una URL para añadir el evento a Yahoo Calendar
  */
 export function generateYahooCalendarUrl(
   appointment: Appointment, 
   patient: Patient, 
   psychologistName: string
 ): string {
+  const formatYahooDate = (date: Date): string => {
+    return date.toISOString().replace(/-|:|\.\d{3}/g, "");
+  };
+  
   const startDate = new Date(appointment.date);
   const endDate = new Date(startDate.getTime() + appointment.duration * 60000);
   
-  // Format dates for Yahoo Calendar URL
-  const formatYahooDate = (date: Date): string => {
-    return date.toISOString().replace(/-|:|\.\d+/g, '');
-  };
-
-  const duration = Math.ceil(appointment.duration / 60); // Duration in hours
-
-  // Create event details
-  const title = encodeURIComponent(`Cita con ${psychologistName}`);
-  const description = appointment.notes 
-    ? encodeURIComponent(`Cita con ${patient.name}. Notas: ${appointment.notes}`)
-    : encodeURIComponent(`Cita con ${patient.name}`);
+  // Construimos la descripción
+  const description = `Cita con ${patient.name}\n` +
+    `Duración: ${appointment.duration} minutos\n` +
+    (appointment.notes ? `Notas: ${appointment.notes}\n` : '');
   
-  const location = appointment.video_url 
-    ? encodeURIComponent(appointment.video_url) 
-    : encodeURIComponent("Consulta online");
+  // Creamos los parámetros para la URL
+  const params = new URLSearchParams({
+    v: '60',
+    title: `Cita con ${psychologistName}`,
+    st: formatYahooDate(startDate),
+    et: formatYahooDate(endDate),
+    desc: description,
+  });
   
-  // Generate Yahoo Calendar URL
-  return `https://calendar.yahoo.com/?v=60&title=${title}&st=${formatYahooDate(startDate)}&et=${formatYahooDate(endDate)}&desc=${description}&in_loc=${location}`;
+  return `https://calendar.yahoo.com/?${params.toString()}`;
 }
