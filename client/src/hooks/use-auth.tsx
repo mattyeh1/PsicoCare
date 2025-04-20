@@ -62,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       try {
+        console.log("Iniciando solicitud de login con:", credentials.username);
+        
         const res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -69,25 +71,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           credentials: "include",
         });
         
+        // Verificar cookies después del login
+        console.log("Cookies después de login:", document.cookie);
+        
         const data = await res.json();
         
         if (!res.ok) {
+          console.error("Error en login:", data);
           throw new Error(data.error || "Credenciales incorrectas");
         }
         
+        console.log("Login exitoso para:", credentials.username);
         return data;
       } catch (error) {
+        console.error("Error en proceso de login:", error);
         throw error;
       }
     },
     onSuccess: (data) => {
+      console.log("Login completado, actualizando caché del usuario");
+      // Guardar el usuario en la caché de la consulta
       queryClient.setQueryData(["/api/user"], data);
+      
+      // Refrescar todas las consultas que dependen de la autenticación
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/user"]
+      });
+      
+      // Guardar indicador de sesión activa en almacenamiento local
+      localStorage.setItem("sessionActive", "true");
+      sessionStorage.setItem("userSession", "active");
+      
       toast({
         title: "Inicio de sesión exitoso",
         description: "Bienvenido/a a PsiConnect",
       });
     },
     onError: (error: Error) => {
+      console.error("Error en login mutation:", error);
       toast({
         title: "Error de inicio de sesión",
         description: error.message || "Credenciales incorrectas. Inténtalo de nuevo.",
@@ -137,6 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       try {
+        console.log("Iniciando proceso de logout");
+        console.log("Estado de cookies antes de logout:", document.cookie);
+        
         const res = await fetch("/api/logout", {
           method: "POST",
           credentials: "include",
@@ -144,19 +168,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (!res.ok) {
           const data = await res.json();
+          console.error("Error en respuesta del servidor durante logout:", data);
           throw new Error(data.error || "Error al cerrar sesión");
         }
+        
+        console.log("Logout exitoso en el servidor");
+        console.log("Estado de cookies después de logout:", document.cookie);
+        
+        // Forzar limpieza manual de cookies en caso de que el servidor no lo haga
+        document.cookie = "psiconnect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        document.cookie = "session_active=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        
+        return res.json();
       } catch (error) {
         // Incluso si hay error, intentamos limpiar la caché del cliente
         console.error("Error durante el proceso de logout:", error);
         throw error;
       } finally {
-        // Limpiar la caché del cliente independientemente del resultado
+        console.log("Limpiando datos locales de sesión");
+        // Limpiar toda la información de sesión del cliente
         localStorage.removeItem("lastKnownUser");
+        localStorage.removeItem("sessionActive");
         sessionStorage.removeItem("userSession");
       }
     },
     onSuccess: () => {
+      console.log("Logout completado, limpiando caché");
       // Limpiar todos los datos relevantes de la caché
       queryClient.setQueryData(["/api/user"], null);
       
@@ -173,8 +210,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente.",
       });
+      
+      // Redirigir a la página de login después de un breve retraso
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 500);
     },
     onError: (error: Error) => {
+      console.error("Error en logout mutation:", error);
+      
       // A pesar del error, intentamos limpiar la caché
       queryClient.setQueryData(["/api/user"], null);
       
@@ -183,6 +227,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Se ha cerrado la sesión pero hubo un problema con el servidor.",
         variant: "destructive",
       });
+      
+      // Redirigir a la página de login incluso si hay error
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1000);
     },
   });
 

@@ -104,16 +104,33 @@ const Messages = () => {
 
   // Verificar autenticación y redirigir si es necesario
   useEffect(() => {
-    // Evitamos redirigir inmediatamente, esperamos a que termine la carga de user
-    if (!user && !userCheck && !isLoading) {
-      // Solo redirigimos si realmente no hay sesión activa
-      console.log("Estado de autenticación en messages:", { user, userCheck, isLoading });
-      toast({
-        title: "Sesión expirada o no iniciada",
-        description: "Por favor, inicie sesión para acceder a esta sección",
-        variant: "destructive",
+    // Solo verificamos el estado de autenticación una vez que la consulta ha terminado
+    // y no estamos en un estado de carga
+    if (!isLoading) {
+      console.log("Estado de autenticación en messages:", { 
+        user: !!user, 
+        userCheck: !!userCheck, 
+        isLoading, 
+        cookiesEnabled: navigator.cookieEnabled,
+        sessionCookie: document.cookie.includes("psiconnect")
       });
-      window.location.href = "/auth";
+      
+      // Verificar si realmente no hay sesión después de intentar cargar
+      if (!user && !userCheck) {
+        console.warn("No se detectó sesión de usuario. Redirigiendo a login.");
+        
+        // Esperamos un momento para evitar redirecciones prematuras
+        const redirectTimer = setTimeout(() => {
+          toast({
+            title: "Sesión expirada o no iniciada",
+            description: "Por favor, inicie sesión para acceder a esta sección",
+            variant: "destructive",
+          });
+          window.location.href = "/login";
+        }, 1000); // Esperar 1 segundo antes de redirigir
+        
+        return () => clearTimeout(redirectTimer);
+      }
     }
   }, [user, userCheck, toast, isLoading]);
 

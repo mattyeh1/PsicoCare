@@ -1,8 +1,17 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
 
 const app = express();
+
+// Configurar CORS para permitir el intercambio de cookies entre cliente y servidor
+app.use(cors({
+  origin: true, // Permitir solicitudes desde cualquier origen en desarrollo
+  credentials: true, // Importante: permite que las cookies se envíen con las solicitudes
+  exposedHeaders: ["set-cookie"]
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
