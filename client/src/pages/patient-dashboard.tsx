@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PatientMessageCenter from '@/components/messaging/PatientMessageCenter';
 
 const PatientDashboard = () => {
   const { user } = useAuth();
@@ -31,19 +32,19 @@ const PatientDashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Obtener información del psicólogo asignado
-  const { data: psychologist, isLoading: isPsychologistLoading } = useQuery({
+  const { data: psychologist, isLoading: isPsychologistLoading } = useQuery<any>({
     queryKey: ['/api/my-psychologist'],
     enabled: !!user && user.user_type === 'patient',
   });
   
   // Obtener disponibilidad del psicólogo
-  const { data: availability } = useQuery({
+  const { data: availability } = useQuery<any[]>({
     queryKey: ['/api/my-psychologist/availability'],
     enabled: !!user && user.user_type === 'patient',
   });
   
   // Obtener citas del paciente
-  const appointmentsQuery = useQuery({
+  const appointmentsQuery = useQuery<any[]>({
     queryKey: ['/api/my-appointments'],
     enabled: !!user && user.user_type === 'patient',
   });
@@ -473,14 +474,28 @@ const PatientDashboard = () => {
                   Ver historial de citas
                 </Button>
                 
-                <Button 
-                  onClick={notifyFeatureNotAvailable} 
-                  className="w-full justify-start" 
-                  variant="outline"
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Contactar a mi psicólogo
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="w-full justify-start" 
+                      variant="outline"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Contactar a mi psicólogo
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%]">
+                    <DialogHeader>
+                      <DialogTitle>Mensajes</DialogTitle>
+                      <DialogDescription>
+                        Comunícate directamente con tu psicólogo
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4 h-[70vh]">
+                      <PatientMessageCenter psychologist={psychologist} />
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardContent>
           </Card>
