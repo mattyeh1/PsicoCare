@@ -15,7 +15,8 @@ import {
   users,
   patients,
   appointments,
-  availability
+  availability,
+  type InsertAppointment
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -28,6 +29,12 @@ import {
 } from "./services/openai";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { 
+  generateICalendarEvent, 
+  generateGoogleCalendarUrl, 
+  generateOutlookCalendarUrl, 
+  generateYahooCalendarUrl 
+} from "@shared/utils/calendarUtils";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -471,6 +478,275 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ message: "Contact request submitted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Error submitting contact request" });
+    }
+  });
+  
+  // Rutas para integración con calendarios externos
+  
+  // Exportar cita a formato iCalendar (.ics)
+  app.get("/api/appointments/:id/ical", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      const appointmentId = parseInt(req.params.id);
+      
+      // Obtener la cita
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar permisos de acceso
+      if (userType === 'psychologist' && appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+      } else if (userType === 'patient') {
+        // Verificar que el paciente tenga acceso a esta cita
+        const patient = await storage.getPatientByUserId(userId);
+        if (!patient || patient.id !== appointment.patient_id) {
+          return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+        }
+      }
+      
+      // Obtener información del paciente
+      const patient = await storage.getPatient(appointment.patient_id);
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+      
+      // Obtener información del psicólogo
+      const psychologist = await storage.getUser(appointment.psychologist_id);
+      if (!psychologist) {
+        return res.status(404).json({ message: "Psicólogo no encontrado" });
+      }
+      
+      // Generar el contenido del archivo iCalendar
+      const icsContent = generateICalendarEvent(
+        appointment, 
+        patient, 
+        psychologist.full_name
+      );
+      
+      // Configurar la respuesta para descargar el archivo
+      res.setHeader('Content-Type', 'text/calendar');
+      res.setHeader('Content-Disposition', `attachment; filename="cita-${appointmentId}.ics"`);
+      res.send(icsContent);
+      
+    } catch (error) {
+      console.error("Error al exportar cita a iCalendar:", error);
+      res.status(500).json({ message: "Error al exportar cita" });
+    }
+  });
+
+  // Obtener URL para Google Calendar
+  app.get("/api/appointments/:id/google-calendar", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      const appointmentId = parseInt(req.params.id);
+      
+      // Obtener la cita
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar permisos de acceso
+      if (userType === 'psychologist' && appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+      } else if (userType === 'patient') {
+        // Verificar que el paciente tenga acceso a esta cita
+        const patient = await storage.getPatientByUserId(userId);
+        if (!patient || patient.id !== appointment.patient_id) {
+          return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+        }
+      }
+      
+      // Obtener información del paciente
+      const patient = await storage.getPatient(appointment.patient_id);
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+      
+      // Obtener información del psicólogo
+      const psychologist = await storage.getUser(appointment.psychologist_id);
+      if (!psychologist) {
+        return res.status(404).json({ message: "Psicólogo no encontrado" });
+      }
+      
+      // Generar la URL de Google Calendar
+      const googleCalendarUrl = generateGoogleCalendarUrl(
+        appointment, 
+        patient, 
+        psychologist.full_name
+      );
+      
+      res.json({ url: googleCalendarUrl });
+      
+    } catch (error) {
+      console.error("Error al generar URL para Google Calendar:", error);
+      res.status(500).json({ message: "Error al generar URL para Google Calendar" });
+    }
+  });
+  
+  // Obtener URL para Outlook Calendar
+  app.get("/api/appointments/:id/outlook-calendar", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      const appointmentId = parseInt(req.params.id);
+      
+      // Obtener la cita
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar permisos de acceso
+      if (userType === 'psychologist' && appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+      } else if (userType === 'patient') {
+        // Verificar que el paciente tenga acceso a esta cita
+        const patient = await storage.getPatientByUserId(userId);
+        if (!patient || patient.id !== appointment.patient_id) {
+          return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+        }
+      }
+      
+      // Obtener información del paciente
+      const patient = await storage.getPatient(appointment.patient_id);
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+      
+      // Obtener información del psicólogo
+      const psychologist = await storage.getUser(appointment.psychologist_id);
+      if (!psychologist) {
+        return res.status(404).json({ message: "Psicólogo no encontrado" });
+      }
+      
+      // Generar la URL de Outlook Calendar
+      const outlookCalendarUrl = generateOutlookCalendarUrl(
+        appointment, 
+        patient, 
+        psychologist.full_name
+      );
+      
+      res.json({ url: outlookCalendarUrl });
+      
+    } catch (error) {
+      console.error("Error al generar URL para Outlook Calendar:", error);
+      res.status(500).json({ message: "Error al generar URL para Outlook Calendar" });
+    }
+  });
+  
+  // Obtener URL para Yahoo Calendar
+  app.get("/api/appointments/:id/yahoo-calendar", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      const appointmentId = parseInt(req.params.id);
+      
+      // Obtener la cita
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar permisos de acceso
+      if (userType === 'psychologist' && appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+      } else if (userType === 'patient') {
+        // Verificar que el paciente tenga acceso a esta cita
+        const patient = await storage.getPatientByUserId(userId);
+        if (!patient || patient.id !== appointment.patient_id) {
+          return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+        }
+      }
+      
+      // Obtener información del paciente
+      const patient = await storage.getPatient(appointment.patient_id);
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+      
+      // Obtener información del psicólogo
+      const psychologist = await storage.getUser(appointment.psychologist_id);
+      if (!psychologist) {
+        return res.status(404).json({ message: "Psicólogo no encontrado" });
+      }
+      
+      // Generar la URL de Yahoo Calendar
+      const yahooCalendarUrl = generateYahooCalendarUrl(
+        appointment, 
+        patient, 
+        psychologist.full_name
+      );
+      
+      res.json({ url: yahooCalendarUrl });
+      
+    } catch (error) {
+      console.error("Error al generar URL para Yahoo Calendar:", error);
+      res.status(500).json({ message: "Error al generar URL para Yahoo Calendar" });
+    }
+  });
+  
+  // Obtener todas las URLs de calendario para una cita
+  app.get("/api/appointments/:id/calendar-links", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      const appointmentId = parseInt(req.params.id);
+      
+      // Obtener la cita
+      const appointment = await storage.getAppointment(appointmentId);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+      
+      // Verificar permisos de acceso
+      if (userType === 'psychologist' && appointment.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+      } else if (userType === 'patient') {
+        // Verificar que el paciente tenga acceso a esta cita
+        const patient = await storage.getPatientByUserId(userId);
+        if (!patient || patient.id !== appointment.patient_id) {
+          return res.status(403).json({ message: "No estás autorizado para acceder a esta cita" });
+        }
+      }
+      
+      // Obtener información del paciente
+      const patient = await storage.getPatient(appointment.patient_id);
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+      
+      // Obtener información del psicólogo
+      const psychologist = await storage.getUser(appointment.psychologist_id);
+      if (!psychologist) {
+        return res.status(404).json({ message: "Psicólogo no encontrado" });
+      }
+      
+      // Generar todas las URLs de calendario
+      const icalUrl = `/api/appointments/${appointmentId}/ical`;
+      const googleCalendarUrl = generateGoogleCalendarUrl(appointment, patient, psychologist.full_name);
+      const outlookCalendarUrl = generateOutlookCalendarUrl(appointment, patient, psychologist.full_name);
+      const yahooCalendarUrl = generateYahooCalendarUrl(appointment, patient, psychologist.full_name);
+      
+      res.json({
+        ical: icalUrl,
+        google: googleCalendarUrl,
+        outlook: outlookCalendarUrl,
+        yahoo: yahooCalendarUrl
+      });
+      
+    } catch (error) {
+      console.error("Error al generar URLs de calendario:", error);
+      res.status(500).json({ message: "Error al generar URLs de calendario" });
     }
   });
   
