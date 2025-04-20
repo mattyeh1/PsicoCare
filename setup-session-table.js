@@ -1,6 +1,9 @@
-const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
+import pg from 'pg';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const { Pool } = pg;
 
 // Configurar conexión a PostgreSQL
 const pool = new Pool({
