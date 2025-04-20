@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -47,6 +47,8 @@ import { ConsentForm as ConsentFormType, Patient, PatientConsent } from "@shared
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import ConsentForm from "@/components/forms/ConsentForm";
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Form schema for consent forms
 const consentFormSchema = z.object({
@@ -246,12 +248,108 @@ const ConsentForms = () => {
     return form ? form.title : 'Formulario desconocido';
   };
 
-  // Generate PDF (in a real app, this would generate a real PDF)
-  const generatePDF = (consent: PatientConsent) => {
-    toast({
-      title: "PDF generado",
-      description: "El PDF del consentimiento ha sido generado.",
-    });
+  // Referencias para los elementos PDF
+  const pdfContentRef = useRef<HTMLDivElement>(null);
+  
+  // Generate PDF
+  const generatePDF = async (consent: PatientConsent) => {
+    setIsLoading(true);
+    
+    try {
+      // Obtener el formulario asociado al consentimiento
+      const consentFormData = consentForms?.find(f => f.id === consent.consent_form_id);
+      const patientData = patients?.find(p => p.id === consent.patient_id);
+      
+      if (!consentFormData || !patientData) {
+        throw new Error("No se encontraron los datos del formulario o paciente");
+      }
+      
+      // Crear elemento temporal para renderizar el PDF
+      const pdfContent = document.createElement('div');
+      pdfContent.className = 'pdf-content p-6';
+      pdfContent.innerHTML = `
+        <div class="text-center mb-6">
+          <h1 class="text-2xl font-bold">${consentFormData.title}</h1>
+          <p class="text-sm text-gray-500">Fecha: ${format(new Date(consent.signed_at), "PPP", { locale: es })}</p>
+        </div>
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold">Datos del paciente</h2>
+          <p><span class="font-medium">Nombre:</span> ${patientData.name}</p>
+          <p><span class="font-medium">Email:</span> ${patientData.email}</p>
+          ${patientData.phone ? `<p><span class="font-medium">Teléfono:</span> ${patientData.phone}</p>` : ''}
+        </div>
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold">Contenido del consentimiento</h2>
+          <div class="whitespace-pre-line mt-2">
+            ${consentFormData.content}
+          </div>
+        </div>
+        <div class="mt-8 pt-4 border-t">
+          <div class="flex justify-between items-end">
+            <div>
+              <p class="font-medium">Firma del paciente:</p>
+              <p class="text-lg mt-1">${consent.signature}</p>
+              <p class="text-sm text-gray-500 mt-4">Firmado digitalmente el ${format(new Date(consent.signed_at), "PPP 'a las' HH:mm", { locale: es })}</p>
+            </div>
+            <div>
+              <p class="font-medium">ID de consentimiento: ${consent.id}</p>
+              <p class="text-sm text-gray-500">Versión: ${consent.form_version}</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(pdfContent);
+      
+      // Generar el PDF usando html2canvas y jsPDF
+      const canvas = await html2canvas(pdfContent, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+      });
+      
+      document.body.removeChild(pdfContent);
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 30;
+      
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      
+      // Añadir pie de página con información de la clínica
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('PsiConnect - Sistema de gestión para psicólogos', pdfWidth / 2, pdfHeight - 10, { align: 'center' });
+      
+      // Descargar el PDF
+      pdf.save(`consentimiento_${patientData.name.replace(/\s+/g, '_')}_${format(new Date(consent.signed_at), 'yyyy-MM-dd')}.pdf`);
+      
+      toast({
+        title: "PDF generado",
+        description: "El documento de consentimiento ha sido descargado exitosamente.",
+      });
+      
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      toast({
+        title: "Error al generar PDF",
+        description: "No se pudo generar el PDF. Inténtalo nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -487,9 +585,16 @@ const ConsentForms = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => generatePDF(viewingConsent)}
+                    disabled={isLoading}
                   >
-                    <Download className="h-4 w-4 mr-1" />
-                    Descargar PDF
+                    {isLoading ? (
+                      <>Generando PDF...</>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-1" />
+                        Descargar PDF
+                      </>
+                    )}
                   </Button>
                 </div>
                 
@@ -604,9 +709,16 @@ const ConsentForms = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => generatePDF(consent)}
+                            disabled={isLoading}
                           >
-                            <Download className="h-4 w-4 mr-1" />
-                            Descargar
+                            {isLoading ? (
+                              <>Generando PDF...</>
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4 mr-1" />
+                                Descargar
+                              </>
+                            )}
                           </Button>
                           <Button 
                             variant="default" 
