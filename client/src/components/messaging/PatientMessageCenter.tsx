@@ -54,22 +54,34 @@ const PatientMessageCenter = ({ psychologist }: PatientMessageCenterProps) => {
     onMessage: (data) => {
       console.log('[WebSocket] Received message:', data);
       
-      // Handle new message notifications
+      // Handle WebSocket message notifications
       if (data.type === 'new_message') {
-        // Play notification sound if recipient
-        if (data.message && data.message.recipient_id === user?.id) {
-          // Update the messages list by invalidating the query
+        // Solo actualizar listas y mostrar notificaciones para mensajes de otros
+        if (data.message && data.message.recipient_id === user?.id && data.message.sender_id !== user?.id) {
+          // Actualizar la lista de mensajes recibidos
           queryClient.invalidateQueries({ queryKey: ['/api/messages/received'] });
           
-          // Show toast notification
+          // Mostrar notificación solo para mensajes de otros usuarios
           toast({
             title: 'Nuevo mensaje',
             description: `Has recibido un nuevo mensaje: ${data.message.subject || 'Sin asunto'}`,
             duration: 5000,
           });
-        } else if (data.message && data.message.sender_id === user?.id) {
-          // If I'm the sender, update sent messages
+        }
+      } 
+      // Handle message sent confirmations
+      else if (data.type === 'message_sent') {
+        // Si recibo confirmación de un mensaje que envié, actualizar mis listas
+        if (data.message && data.message.sender_id === user?.id) {
+          // Actualizar mensajes enviados sin notificación
           queryClient.invalidateQueries({ queryKey: ['/api/messages/sent'] });
+          
+          // Confirmar con toast discreta que el mensaje fue enviado
+          toast({
+            title: 'Mensaje enviado',
+            description: `Tu mensaje "${data.message.subject || 'Sin asunto'}" ha sido enviado.`,
+            duration: 3000,
+          });
         }
       }
     },

@@ -888,8 +888,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     clients.forEach((clientInfo, client) => {
       if (client.readyState === WebSocket.OPEN) {
         const userId = clientInfo.userId;
-        if (userId === senderId || userId === recipientId) {
-          console.log(`[WebSocket] Sending notification to User #${userId}`);
+        
+        if (userId === recipientId) {
+          // Para el destinatario: notificación completa
+          console.log(`[WebSocket] Sending notification to recipient #${userId}`);
           client.send(JSON.stringify({
             type: 'new_message',
             message: {
@@ -899,6 +901,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               subject: messageData.subject,
               sent_at: messageData.sent_at || new Date(),
               is_notification: true
+            }
+          }));
+        } else if (userId === senderId) {
+          // Para el remitente: confirmación de envío sin notificación
+          console.log(`[WebSocket] Sending confirmation to sender #${userId}`);
+          client.send(JSON.stringify({
+            type: 'message_sent',
+            message: {
+              id: messageData.id,
+              sender_id: senderId,
+              recipient_id: recipientId,
+              subject: messageData.subject,
+              sent_at: messageData.sent_at || new Date(),
+              is_notification: false
             }
           }));
         }
