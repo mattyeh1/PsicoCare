@@ -231,17 +231,56 @@ const PatientDashboard = () => {
               <CardDescription>Tus sesiones programadas</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                No tienes citas programadas próximamente.
-              </p>
-              <Button 
-                onClick={notifyFeatureNotAvailable} 
-                className="w-full" 
-                variant="outline"
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Ver calendario de citas
-              </Button>
+              {isAppointmentsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : nextAppointment ? (
+                <div className="space-y-3">
+                  <div className="rounded-md border p-3">
+                    <div className="flex flex-col space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{new Date(nextAppointment.date).toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                        <span className="rounded-full px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800">
+                          {nextAppointment.status === "scheduled" ? "Programada" : 
+                           nextAppointment.status === "completed" ? "Completada" :
+                           nextAppointment.status === "cancelled" ? "Cancelada" : "Perdida"}
+                        </span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(nextAppointment.date).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })} - Duración: {nextAppointment.duration} min
+                      </span>
+                      {nextAppointment.notes && (
+                        <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
+                          {nextAppointment.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={notifyFeatureNotAvailable} 
+                    className="w-full" 
+                    variant="outline"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Ver todas mis citas
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No tienes citas programadas próximamente.
+                  </p>
+                  <Button 
+                    onClick={() => setIsDialogOpen(true)} 
+                    className="w-full" 
+                    variant="outline"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Solicitar tu primera cita
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
 
