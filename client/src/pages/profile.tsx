@@ -243,38 +243,40 @@ const Profile = () => {
         </div>
 
         {userData?.user_type === 'psychologist' && userData?.unique_code && (
-          <Card className="border-primary mb-6 overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className="text-center md:text-left">
-                  <h3 className="text-xl font-bold text-primary mb-2">Tu código único para pacientes</h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Comparte este código con tus pacientes para que puedan conectarse contigo al registrarse
+          <div className="mb-8">
+            <div className="bg-card rounded-xl shadow-md overflow-hidden border border-muted">
+              <div className="flex flex-col md:flex-row justify-between items-center">
+                <div className="p-6 md:p-8 md:w-3/5">
+                  <h3 className="text-xl font-semibold mb-3">Código para tus pacientes</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Comparte este código con tus pacientes para que puedan vincularse a tu consulta al registrarse.
                   </p>
                 </div>
-                <div className="flex items-center justify-center gap-4">
-                  <div className="text-4xl font-mono font-bold tracking-widest text-primary bg-white dark:bg-gray-800 rounded-lg px-6 py-3 border-2 border-primary/30 shadow-sm">
-                    {userData.unique_code}
+                <div className="bg-primary text-primary-foreground w-full md:w-2/5 p-6 md:p-8 flex flex-col items-center justify-center md:border-l border-primary-foreground/10">
+                  <div className="flex flex-col items-center">
+                    <div className="text-5xl font-mono tracking-[0.5em] pb-1 font-medium mb-4">
+                      {userData.unique_code}
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="mt-2 px-4 py-1 h-9"
+                      onClick={() => {
+                        navigator.clipboard.writeText(userData.unique_code);
+                        toast({
+                          title: "Código copiado",
+                          description: "El código ha sido copiado al portapapeles",
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copiar código
+                    </Button>
                   </div>
-                  <Button
-                    variant="default"
-                    size="default"
-                    className="shadow-sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(userData.unique_code);
-                      toast({
-                        title: "Código copiado",
-                        description: "El código ha sido copiado al portapapeles",
-                      });
-                    }}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copiar
-                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
         
         <Tabs defaultValue="profile" className="space-y-4">
