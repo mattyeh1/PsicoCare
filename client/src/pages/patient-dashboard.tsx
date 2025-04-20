@@ -478,7 +478,7 @@ const PatientDashboard = () => {
                   <DialogTrigger asChild>
                     <Button 
                       className="w-full justify-start" 
-                      variant="outline"
+                      variant="default"
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Contactar a mi psicólogo
