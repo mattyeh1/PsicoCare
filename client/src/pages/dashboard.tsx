@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Users, MessageSquare, FileText, Pencil } from "lucide-react";
+import { Calendar, Clock, Users, MessageSquare, FileText, Pencil, CheckSquare } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import AppointmentCalendar from "@/components/calendar/AppointmentCalendar";
@@ -168,6 +168,12 @@ const Dashboard = () => {
                           <Button className="w-full justify-start" variant="outline">
                             <Clock className="mr-2 h-4 w-4" />
                             Gestionar citas existentes
+                          </Button>
+                        </Link>
+                        <Link href="/appointment-requests">
+                          <Button className="w-full justify-start" variant="outline">
+                            <CheckSquare className="mr-2 h-4 w-4" />
+                            Solicitudes de citas
                           </Button>
                         </Link>
                       </div>
