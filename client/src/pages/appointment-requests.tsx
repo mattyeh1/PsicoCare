@@ -63,23 +63,44 @@ const AppointmentRequests = () => {
     queryKey: ["/api/patients"],
   });
 
-  // Mutation for updating appointment status
-  const updateAppointmentStatusMutation = useMutation({
-    mutationFn: async ({ id, status, notes }: { id: number; status: string; notes?: string }) => {
-      return apiRequest("PUT", `/api/appointments/${id}`, { status, notes });
+  // Mutation para aprobar una cita
+  const approveAppointmentMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: number; notes?: string }) => {
+      return apiRequest("POST", `/api/appointments/${id}/approve`, { notes });
     },
     onSuccess: () => {
       toast({
-        title: "Estado actualizado",
-        description: "El estado de la solicitud ha sido actualizado.",
+        title: "Cita aprobada",
+        description: "La solicitud de cita ha sido aprobada exitosamente.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
-      setRejectionReason("");
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "No se pudo actualizar el estado de la solicitud.",
+        description: "No se pudo aprobar la solicitud de cita.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Mutation para rechazar una cita
+  const rejectAppointmentMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: number; reason: string }) => {
+      return apiRequest("POST", `/api/appointments/${id}/reject`, { reason });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cita rechazada",
+        description: "La solicitud de cita ha sido rechazada.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setRejectionReason("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "No se pudo rechazar la solicitud de cita. Asegúrate de proporcionar un motivo.",
         variant: "destructive",
       });
     },
@@ -108,18 +129,26 @@ const AppointmentRequests = () => {
 
   // Handle approve
   const handleApprove = (appointment: Appointment) => {
-    updateAppointmentStatusMutation.mutate({ 
+    approveAppointmentMutation.mutate({ 
       id: appointment.id, 
-      status: 'approved' 
+      notes: appointment.notes || undefined
     });
   };
 
   // Handle reject
   const handleReject = (appointment: Appointment) => {
-    updateAppointmentStatusMutation.mutate({ 
+    if (!rejectionReason.trim()) {
+      toast({
+        title: "Se requiere un motivo",
+        description: "Por favor, proporciona un motivo para rechazar la solicitud.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    rejectAppointmentMutation.mutate({ 
       id: appointment.id, 
-      status: 'rejected',
-      notes: rejectionReason || "Solicitud rechazada por el profesional."
+      reason: rejectionReason
     });
   };
 
@@ -201,7 +230,7 @@ const AppointmentRequests = () => {
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleApprove(appointment)}
-                                disabled={updateAppointmentStatusMutation.isPending}
+                                disabled={approveAppointmentMutation.isPending}
                               >
                                 <Check className="mr-1.5 h-4 w-4" />
                                 Aprobar
