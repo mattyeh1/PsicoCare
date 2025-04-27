@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import CalendarExportMenu from "@/components/calendar/CalendarExportMenu";
 import { Appointment, Patient } from "@shared/schema";
 
@@ -249,37 +250,67 @@ const AppointmentRequests = () => {
                           <CardFooter>
                             <div className="flex gap-2 justify-end w-full">
                               {/* Aprobar directamente */}
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleApprove(appointment)}
-                                disabled={approveAppointmentMutation.isPending}
-                              >
-                                {approveAppointmentMutation.isPending ? (
-                                  <>
-                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                                    Procesando...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Check className="mr-1.5 h-4 w-4" />
-                                    Aprobar
-                                  </>
-                                )}
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleApprove(appointment)}
+                                      disabled={approveAppointmentMutation.isPending}
+                                      className={
+                                        actionAppointmentId === appointment.id && approveAppointmentMutation.isPending 
+                                          ? "bg-green-50 border-green-300 hover:bg-green-50" 
+                                          : ""
+                                      }
+                                      aria-label="Aprobar solicitud de cita"
+                                    >
+                                      {approveAppointmentMutation.isPending && actionAppointmentId === appointment.id ? (
+                                        <>
+                                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-green-600" />
+                                          <span className="text-green-600">Aprobando...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Check className="mr-1.5 h-4 w-4" />
+                                          Aprobar
+                                        </>
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Aprobar esta solicitud de cita</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
 
                               {/* Diálogo de rechazo */}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => setSelectedAppointment(appointment)}
-                                    disabled={rejectAppointmentMutation.isPending}
-                                  >
-                                    <X className="mr-1.5 h-4 w-4" />
-                                    Rechazar
-                                  </Button>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={() => setSelectedAppointment(appointment)}
+                                          disabled={rejectAppointmentMutation.isPending}
+                                          className={
+                                            actionAppointmentId === appointment.id && rejectAppointmentMutation.isPending 
+                                              ? "bg-red-50 border-red-300 hover:bg-red-50" 
+                                              : ""
+                                          }
+                                          aria-label="Rechazar solicitud de cita"
+                                        >
+                                          <X className="mr-1.5 h-4 w-4" />
+                                          Rechazar
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Rechazar esta solicitud de cita</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
@@ -306,11 +337,16 @@ const AppointmentRequests = () => {
                                         }
                                       }}
                                       disabled={rejectAppointmentMutation.isPending || !rejectionReason.trim()}
+                                      className={
+                                        actionAppointmentId === selectedAppointment?.id && rejectAppointmentMutation.isPending 
+                                          ? "bg-red-50 border-red-300 hover:bg-red-50" 
+                                          : ""
+                                      }
                                     >
                                       {rejectAppointmentMutation.isPending ? (
                                         <>
-                                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                                          Procesando...
+                                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin text-red-600" />
+                                          <span className="text-red-600">Rechazando...</span>
                                         </>
                                       ) : (
                                         "Confirmar rechazo"
