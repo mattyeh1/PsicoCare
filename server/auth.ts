@@ -186,6 +186,26 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser(userData);
 
       console.log("Usuario creado, iniciando sesión:", user.id);
+      
+      // Si es un paciente, también creamos su entrada en la tabla patients
+      if (user.user_type === 'patient' && user.psychologist_id) {
+        try {
+          // Crear el registro en la tabla patients
+          const patientData = {
+            psychologist_id: user.psychologist_id,
+            name: user.full_name,
+            email: user.email,
+            status: 'active'
+          };
+          
+          console.log("Creando registro de paciente en la tabla patients:", patientData);
+          const patient = await storage.createPatient(patientData);
+          console.log("Registro de paciente creado exitosamente:", patient.id);
+        } catch (err) {
+          console.error("Error al crear registro de paciente:", err);
+          // No detenemos el proceso de registro si falla esta parte
+        }
+      }
       // Iniciar sesión automáticamente
       req.login(user, (err) => {
         if (err) {
