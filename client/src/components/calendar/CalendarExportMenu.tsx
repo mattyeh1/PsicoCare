@@ -7,9 +7,10 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Calendar, Download, ExternalLink } from "lucide-react";
+import { Calendar, Download, ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CalendarExportMenuProps {
   appointmentId: number;

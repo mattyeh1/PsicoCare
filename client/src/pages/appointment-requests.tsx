@@ -23,6 +23,7 @@ import {
   User,
   FileText,
   Calendar as CalendarIcon2,
+  Loader2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -73,12 +74,14 @@ const AppointmentRequests = () => {
         title: "Cita aprobada",
         description: "La solicitud de cita ha sido aprobada exitosamente.",
       });
+      // Invalidar la consulta para actualizar los datos
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Error al aprobar cita:", error);
       toast({
         title: "Error",
-        description: "No se pudo aprobar la solicitud de cita.",
+        description: "No se pudo aprobar la solicitud de cita. Por favor intenta de nuevo.",
         variant: "destructive",
       });
     },
@@ -87,20 +90,29 @@ const AppointmentRequests = () => {
   // Mutation para rechazar una cita
   const rejectAppointmentMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: number; reason: string }) => {
+      if (!reason || reason.trim() === "") {
+        throw new Error("El motivo del rechazo es obligatorio");
+      }
       return apiRequest("POST", `/api/appointments/${id}/reject`, { reason });
     },
     onSuccess: () => {
       toast({
         title: "Cita rechazada",
-        description: "La solicitud de cita ha sido rechazada.",
+        description: "La solicitud de cita ha sido rechazada correctamente.",
       });
+      // Invalidar la consulta para actualizar los datos
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      // Limpiar el motivo de rechazo y cerrar el diálogo
       setRejectionReason("");
+      setSelectedAppointment(null);
     },
     onError: (error) => {
+      console.error("Error al rechazar cita:", error);
       toast({
         title: "Error",
-        description: "No se pudo rechazar la solicitud de cita. Asegúrate de proporcionar un motivo.",
+        description: error instanceof Error 
+          ? error.message 
+          : "No se pudo rechazar la solicitud de cita. Asegúrate de proporcionar un motivo.",
         variant: "destructive",
       });
     },
@@ -232,8 +244,17 @@ const AppointmentRequests = () => {
                                 onClick={() => handleApprove(appointment)}
                                 disabled={approveAppointmentMutation.isPending}
                               >
-                                <Check className="mr-1.5 h-4 w-4" />
-                                Aprobar
+                                {approveAppointmentMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                                    Procesando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check className="mr-1.5 h-4 w-4" />
+                                    Aprobar
+                                  </>
+                                )}
                               </Button>
 
                               {/* Diálogo de rechazo */}
@@ -243,6 +264,7 @@ const AppointmentRequests = () => {
                                     variant="outline" 
                                     size="sm"
                                     onClick={() => setSelectedAppointment(appointment)}
+                                    disabled={rejectAppointmentMutation.isPending}
                                   >
                                     <X className="mr-1.5 h-4 w-4" />
                                     Rechazar
@@ -252,7 +274,7 @@ const AppointmentRequests = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>¿Rechazar solicitud de cita?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Puedes incluir un motivo para el rechazo (opcional):
+                                      Debes proporcionar un motivo para el rechazo:
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <Textarea
@@ -260,18 +282,29 @@ const AppointmentRequests = () => {
                                     value={rejectionReason}
                                     onChange={(e) => setRejectionReason(e.target.value)}
                                     className="mt-2"
+                                    disabled={rejectAppointmentMutation.isPending}
                                   />
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction 
+                                    <AlertDialogCancel disabled={rejectAppointmentMutation.isPending}>
+                                      Cancelar
+                                    </AlertDialogCancel>
+                                    <Button 
                                       onClick={() => {
                                         if (selectedAppointment) {
                                           handleReject(selectedAppointment);
                                         }
                                       }}
+                                      disabled={rejectAppointmentMutation.isPending || !rejectionReason.trim()}
                                     >
-                                      Confirmar rechazo
-                                    </AlertDialogAction>
+                                      {rejectAppointmentMutation.isPending ? (
+                                        <>
+                                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                                          Procesando...
+                                        </>
+                                      ) : (
+                                        "Confirmar rechazo"
+                                      )}
+                                    </Button>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
