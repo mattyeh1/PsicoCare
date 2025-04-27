@@ -255,9 +255,9 @@ async function createAdminUser() {
       return true;
     }
     
-    // Hash de contraseña 'admin123' (esto normalmente debería hacerse con bcrypt)
-    // Este es el hash generado por la función de hashPassword en auth.ts
-    const hashedPassword = '3c3272df222c7ad02c63e0f17a7dad9a5bd4d3c10fb1d4d9e7a38ff442887fd9a8f3f7c1b1b3c51a10ca3919e764abfc8b8f4ff0c5b88c8d82799d4e31f0dc37.c0536a5c6e3e4e9b';
+    // Crear una contraseña simple para pruebas: 'admin123'
+    // Simular el hash que generaría la función hashPassword en auth.ts
+    const hashedPassword = 'c5e478d59288c841aa530aa36bd65ea1c223674bc5df4e886a81d3b12c54a8cd7538b0a276785f41d22ec19e36aca6e8e2d32527f5b32777bc6e919a15f3eeb1.1ad10200f9fad202';
     
     // Crear usuario admin
     const insertUserSQL = `
