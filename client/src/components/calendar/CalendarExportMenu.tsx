@@ -38,15 +38,26 @@ const CalendarExportMenu = ({
     retry: 1,
   });
   
+  // Estado para rastrear si ha habido un error al cargar
+  const [hasError, setHasError] = useState(false);
+  
   // Manejar errores
   useEffect(() => {
     if (error) {
+      console.error("Error al cargar enlaces de calendario:", error);
+      setHasError(true);
+      
       toast({
-        title: "Error",
-        description: "No se pudieron cargar las opciones para exportar la cita.",
-        variant: "destructive"
+        title: "Error al cargar calendario",
+        description: "No se pudieron cargar las opciones para exportar la cita. Intente nuevamente más tarde.",
+        variant: "destructive",
+        duration: 5000,
       });
-      setIsOpen(false);
+      
+      // No cerramos inmediatamente el menú para mostrar el estado de error
+      setTimeout(() => setIsOpen(false), 2000);
+    } else {
+      setHasError(false);
     }
   }, [error, toast]);
 
@@ -67,34 +78,39 @@ const CalendarExportMenu = ({
 
   // Renderizar botón según el estilo solicitado
   const renderButton = () => {
-    switch (buttonStyle) {
-      case "icon":
-        return (
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)}>
-            <Calendar size={iconSize} />
-          </Button>
-        );
-      case "text":
-        return (
-          <Button variant="ghost" size="sm" onClick={() => setIsOpen(true)}>
-            <Calendar className="mr-2" size={16} />
-            Agregar al calendario
-          </Button>
-        );
-      case "full":
-        return (
-          <Button variant="outline" onClick={() => setIsOpen(true)}>
-            <Calendar className="mr-2" size={16} />
-            Agregar al calendario
-          </Button>
-        );
-      default:
-        return (
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)}>
-            <Calendar size={iconSize} />
-          </Button>
-        );
-    }
+    // Contenido del botón considerando estado de carga
+    const buttonContent = isLoading ? (
+      <>
+        <Loader2 size={iconSize} className="animate-spin" />
+        <span className="sr-only">Cargando opciones de calendario</span>
+      </>
+    ) : (
+      <>
+        <Calendar size={iconSize} />
+        {buttonStyle !== "icon" && <span className="ml-2">Agregar al calendario</span>}
+      </>
+    );
+    
+    // Renderizar botón con tooltip para mejor accesibilidad
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant={buttonStyle === "full" ? "outline" : "ghost"} 
+              size={buttonStyle === "icon" ? "icon" : "sm"}
+              onClick={() => setIsOpen(true)}
+              aria-label="Agregar cita al calendario"
+            >
+              {buttonContent}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Agregar cita al calendario</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   return (
@@ -109,7 +125,24 @@ const CalendarExportMenu = ({
         <DropdownMenuSeparator />
         {isLoading ? (
           <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-            Cargando opciones...
+            <Loader2 className="animate-spin h-5 w-5 mx-auto mb-2" />
+            <p>Cargando opciones...</p>
+          </div>
+        ) : hasError ? (
+          <div className="px-2 py-4 text-center text-sm text-destructive">
+            <AlertCircle className="h-5 w-5 mx-auto mb-2" />
+            <p>No se pudieron cargar las opciones</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => {
+                setHasError(false);
+                setIsOpen(true);
+              }}
+            >
+              Reintentar
+            </Button>
           </div>
         ) : (
           <>
