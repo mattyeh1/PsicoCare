@@ -46,6 +46,7 @@ const AppointmentRequests = () => {
   const { toast } = useToast();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [actionAppointmentId, setActionAppointmentId] = useState<number | null>(null);
   
   // Refrescar datos de usuario al cargar la página
   useEffect(() => {
@@ -141,9 +142,14 @@ const AppointmentRequests = () => {
 
   // Handle approve
   const handleApprove = (appointment: Appointment) => {
+    setActionAppointmentId(appointment.id);
     approveAppointmentMutation.mutate({ 
       id: appointment.id, 
       notes: appointment.notes || undefined
+    }, {
+      onSettled: () => {
+        setTimeout(() => setActionAppointmentId(null), 500);
+      }
     });
   };
 
@@ -158,9 +164,14 @@ const AppointmentRequests = () => {
       return;
     }
     
+    setActionAppointmentId(appointment.id);
     rejectAppointmentMutation.mutate({ 
       id: appointment.id, 
       reason: rejectionReason
+    }, {
+      onSettled: () => {
+        setTimeout(() => setActionAppointmentId(null), 500);
+      }
     });
   };
 
