@@ -254,6 +254,12 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   reminder_sent: true,
   payment_status: true,
   meeting_type: true
+}).extend({
+  // Permitir que date sea tanto string en formato ISO como objeto Date
+  date: z.union([
+    z.string().transform((date) => new Date(date)),
+    z.date()
+  ])
 });
 
 export const insertAvailabilitySchema = createInsertSchema(availability).omit({ 

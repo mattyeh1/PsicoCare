@@ -212,10 +212,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const appointmentData = { ...req.body, psychologist_id: userId };
+      
+      console.log("Datos de cita a crear:", appointmentData);
+      
+      // Verificar que el paciente exista y pertenezca a este psicólogo
+      const patient = await storage.getPatient(appointmentData.patient_id);
+      if (!patient) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+      
+      if (patient.psychologist_id !== userId) {
+        return res.status(403).json({ message: "No tienes permiso para crear citas para este paciente" });
+      }
+      
+      // Validar formato de fecha
+      try {
+        const date = new Date(appointmentData.date);
+        if (isNaN(date.getTime())) {
+          return res.status(400).json({ message: "Formato de fecha inválido" });
+        }
+        appointmentData.date = date;
+      } catch (err) {
+        return res.status(400).json({ message: "Error en formato de fecha", error: String(err) });
+      }
+      
+      // Crear la cita
       const appointment = await storage.createAppointment(appointmentData);
+      console.log("Cita creada:", appointment);
       res.status(201).json(appointment);
     } catch (error) {
-      res.status(500).json({ message: "Error creating appointment" });
+      console.error("Error al crear cita:", error);
+      res.status(500).json({ 
+        message: "Error al crear la cita", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
