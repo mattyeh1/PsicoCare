@@ -51,7 +51,29 @@ async function createSessionTable() {
 // Función para crear las tablas del esquema
 async function createSchemaTables() {
   try {
-    // 1. Tabla de usuarios
+    // Crear primero los tipos enum
+    const enumSQL = `
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_type') THEN
+          CREATE TYPE user_type AS ENUM ('psychologist', 'patient');
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'appointment_status') THEN
+          CREATE TYPE appointment_status AS ENUM ('pending', 'approved', 'scheduled', 'completed', 'cancelled', 'missed', 'rejected');
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_type') THEN
+          CREATE TYPE message_type AS ENUM ('appointment_reminder', 'follow_up', 'welcome', 'cancellation', 'rescheduling', 'custom');
+        END IF;
+      END $$;
+    `;
+    
+    // Intentar crear los tipos enum
+    await client.query(enumSQL);
+    console.log('✅ Tipos enum creados o verificados');
+    
+    // 1. Tabla de usuarios con campo user_type
     const usersTableSQL = `
       CREATE TABLE IF NOT EXISTS "users" (
         "id" SERIAL PRIMARY KEY,
@@ -59,7 +81,7 @@ async function createSchemaTables() {
         "password" VARCHAR(255) NOT NULL,
         "email" VARCHAR(255) NOT NULL,
         "full_name" VARCHAR(255) NOT NULL,
-        "specialty" VARCHAR(255) NOT NULL,
+        "specialty" VARCHAR(255),
         "bio" TEXT,
         "education" TEXT,
         "certifications" TEXT,
@@ -69,7 +91,10 @@ async function createSchemaTables() {
         "account_status" VARCHAR(50) NOT NULL DEFAULT 'active',
         "last_login" TIMESTAMP,
         "timezone" VARCHAR(50) DEFAULT 'UTC',
-        "language_preference" VARCHAR(10) DEFAULT 'es'
+        "language_preference" VARCHAR(10) DEFAULT 'es',
+        "user_type" user_type NOT NULL DEFAULT 'psychologist',
+        "unique_code" VARCHAR(4),
+        "psychologist_id" INTEGER
       );
     `;
     
@@ -238,11 +263,11 @@ async function createAdminUser() {
     const insertUserSQL = `
       INSERT INTO "users" (
         "username", "password", "email", "full_name", "specialty", 
-        "bio", "account_status", "created_at", "updated_at", "language_preference"
+        "bio", "account_status", "created_at", "updated_at", "language_preference", "user_type"
       ) 
       VALUES (
         'admin', $1, 'admin@example.com', 'Administrador', 'Psicología Clínica',
-        'Usuario administrador para pruebas', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'es'
+        'Usuario administrador para pruebas', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'es', 'psychologist'
       )
     `;
     
