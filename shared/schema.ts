@@ -77,7 +77,7 @@ export const appointments = pgTable("appointments", {
   patient_id: integer("patient_id").references(() => patients.id).notNull(),
   date: timestamp("date").notNull(),
   duration: integer("duration").notNull(), // in minutes
-  status: appointmentStatusEnum("status").notNull().default('scheduled'),
+  status: appointmentStatusEnum("status").notNull().default('pending'),
   notes: text("notes"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),

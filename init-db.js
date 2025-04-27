@@ -124,7 +124,7 @@ async function createSchemaTables() {
         "patient_id" INTEGER NOT NULL REFERENCES "patients"("id"),
         "date" TIMESTAMP NOT NULL,
         "duration" INTEGER NOT NULL,
-        "status" VARCHAR(50) NOT NULL CHECK ("status" IN ('scheduled', 'completed', 'cancelled', 'missed')),
+        "status" VARCHAR(50) NOT NULL CHECK ("status" IN ('pending', 'approved', 'scheduled', 'completed', 'cancelled', 'missed', 'rejected')),
         "notes" TEXT,
         "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
