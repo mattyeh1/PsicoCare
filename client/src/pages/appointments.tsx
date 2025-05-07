@@ -79,6 +79,7 @@ const appointmentFormSchema = z.object({
     message: "Por favor selecciona una duración.",
   }),
   notes: z.string().optional(),
+  payment_receipt: z.instanceof(File).optional(),
 });
 
 // Form schema for availability
@@ -133,6 +134,7 @@ const Appointments = () => {
       time: "",
       duration: "60",
       notes: "",
+      payment_receipt: undefined,
     },
   });
 
@@ -241,16 +243,50 @@ const Appointments = () => {
     
     selectedDateTime.setHours(hours, minutes, 0, 0);
     
-    const appointmentData = {
-      patient_id: parseInt(values.patient_id),
-      psychologist_id: user?.id,
-      date: selectedDateTime.toISOString(),
-      duration: parseInt(values.duration),
-      status: 'scheduled',
-      notes: values.notes,
-    };
+    // Crear un objeto FormData para enviar el archivo si existe
+    const formData = new FormData();
+    formData.append('patient_id', values.patient_id);
+    formData.append('psychologist_id', user?.id ? user.id.toString() : '');
+    formData.append('date', selectedDateTime.toISOString());
+    formData.append('duration', values.duration);
+    formData.append('status', 'scheduled');
+    if (values.notes) formData.append('notes', values.notes);
     
-    createAppointmentMutation.mutate(appointmentData);
+    // Adjuntar comprobante de pago si se proporcionó
+    if (values.payment_receipt) {
+      formData.append('payment_receipt', values.payment_receipt);
+    }
+    
+    // Usar función fetch directamente para manejar FormData
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al crear la cita');
+      }
+      
+      // Si la respuesta es exitosa
+      toast({
+        title: "Cita creada",
+        description: "La cita ha sido creada exitosamente.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setIsCreating(false);
+      form.reset();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear la cita. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+      console.error("Error al crear cita:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Submit availability form
@@ -507,6 +543,33 @@ const Appointments = () => {
                   )}
                 />
                 
+                <FormField
+                  control={form.control}
+                  name="payment_receipt"
+                  render={({ field: { value, onChange, ...fieldProps } }) => (
+                    <FormItem>
+                      <FormLabel>Comprobante de pago (opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              onChange(file);
+                            }
+                          }}
+                          {...fieldProps}
+                        />
+                      </FormControl>
+                      <p className="text-sm text-muted-foreground">
+                        Sube un comprobante de pago (formatos aceptados: JPG, PNG, PDF)
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <DialogFooter>
                   <Button 
                     variant="outline" 
@@ -515,8 +578,13 @@ const Appointments = () => {
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={createAppointmentMutation.isPending}>
-                    {createAppointmentMutation.isPending ? "Creando..." : "Crear cita"}
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creando...
+                      </>
+                    ) : "Crear cita"}
                   </Button>
                 </DialogFooter>
               </form>
