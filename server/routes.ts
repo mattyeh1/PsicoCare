@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
@@ -45,6 +45,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
+  
+  // Configurar ruta para servir archivos estáticos desde el directorio uploads
+  app.use('/uploads', (req, res, next) => {
+    // Log de acceso a archivo
+    console.log(`Acceso a archivo: ${req.path}`);
+    next();
+  }, express.static(uploadsDir));
   
   // Configurar multer para guardar archivos en el directorio uploads
   const storage = multer.diskStorage({
