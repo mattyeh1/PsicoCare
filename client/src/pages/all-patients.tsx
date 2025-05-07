@@ -5,6 +5,7 @@ import { Calendar, MessageSquare, FileText, User, Search, PlusCircle, Loader2 } 
 
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { type Patient } from '@shared/schema';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,7 +105,7 @@ const AllPatients = () => {
                           <div className="flex items-center gap-3">
                             <Avatar>
                               <AvatarFallback>
-                                {patient.name.split(' ').map(name => name[0]).join('').substring(0, 2).toUpperCase()}
+                                {patient.name.split(' ').map((name: string) => name[0]).join('').substring(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div>

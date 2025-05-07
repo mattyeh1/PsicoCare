@@ -14,7 +14,8 @@ import {
   MessageSquare, 
   FileText, 
   LogOut,
-  ClipboardCheck
+  ClipboardCheck,
+  Users
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -164,6 +165,15 @@ const Header = () => {
                           <span>Consentimientos</span>
                         </div>
                       </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <div 
+                          onClick={() => window.location.href = "/patients"}
+                          className="flex items-center gap-2 cursor-pointer w-full"
+                        >
+                          <Users className="h-4 w-4" />
+                          <span>Mis Pacientes</span>
+                        </div>
+                      </DropdownMenuItem>
                     </>
                   )}
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-red-500">
@@ -273,6 +283,15 @@ const Header = () => {
                       }}
                     >
                       Consentimientos
+                    </button>
+                    <button 
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        window.location.href = "/patients";
+                      }}
+                    >
+                      Mis Pacientes
                     </button>
                   </>
                 )}
