@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { addDays, format } from 'date-fns';
@@ -9,7 +9,9 @@ import {
   FileText, 
   Loader2, 
   MessageSquare, 
-  UserCircle 
+  UserCircle,
+  Upload,
+  X
 } from 'lucide-react';
 
 import { queryClient } from '@/lib/queryClient';
@@ -21,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import PatientMessageCenter from '@/components/messaging/PatientMessageCenter';
 
 const PatientDashboard = () => {
@@ -30,6 +33,9 @@ const PatientDashboard = () => {
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Obtener información del psicólogo asignado
   const { data: psychologist, isLoading: isPsychologistLoading } = useQuery<any>({
@@ -60,6 +66,24 @@ const PatientDashboard = () => {
     });
   };
   
+  // Función para manejar la selección de archivo
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPaymentReceipt(file);
+      setFileName(file.name);
+    }
+  };
+
+  // Función para eliminar el archivo seleccionado
+  const handleRemoveFile = () => {
+    setPaymentReceipt(null);
+    setFileName("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   // Manejar la solicitud de una nueva cita
   const handleRequestAppointment = async () => {
     try {
@@ -81,20 +105,20 @@ const PatientDashboard = () => {
       const dateTimeString = `${appointmentDate}T${appointmentTime}:00`;
       const appointmentDateTime = new Date(dateTimeString);
       
-      // Crear objeto de datos para la API
-      const appointmentData = {
-        date: appointmentDateTime.toISOString(),
-        duration: 60, // duración predeterminada: 60 minutos
-        // Ya no enviamos el estado, el backend lo establece como "pending"
-      };
+      // Crear un FormData para enviar el archivo y los datos juntos
+      const formData = new FormData();
+      formData.append('date', appointmentDateTime.toISOString());
+      formData.append('duration', '60'); // duración predeterminada: 60 minutos
+      
+      // Añadir el comprobante de pago si se ha seleccionado uno
+      if (paymentReceipt) {
+        formData.append('payment_receipt', paymentReceipt);
+      }
       
       // Enviar solicitud de cita
       await fetch('/api/my-appointments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(appointmentData),
+        body: formData,
         credentials: 'include'
       });
       
@@ -109,6 +133,11 @@ const PatientDashboard = () => {
       setIsDialogOpen(false);
       setAppointmentDate("");
       setAppointmentTime("");
+      setPaymentReceipt(null);
+      setFileName("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       
       // Invalidar consultas para refrescar datos
       queryClient.invalidateQueries({ queryKey: ['/api/my-appointments'] });
