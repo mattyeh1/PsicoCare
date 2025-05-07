@@ -601,27 +601,28 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
           
-          {/* Pestaña de pacientes */}
-          <TabsContent value="patients">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Mis pacientes</CardTitle>
-                      <CardDescription>
-                        Gestiona la información y archivos de tus pacientes
-                      </CardDescription>
+          {/* Pestaña de pacientes - solo visible para psicólogos */}
+          {isPsychologist && (
+            <TabsContent value="patients">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Mis pacientes</CardTitle>
+                        <CardDescription>
+                          Gestiona la información y archivos de tus pacientes
+                        </CardDescription>
+                      </div>
+                      <Button 
+                        onClick={() => setIsAddingPatient(true)}
+                        disabled={isAddingPatient}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nuevo paciente
+                      </Button>
                     </div>
-                    <Button 
-                      onClick={() => setIsAddingPatient(true)}
-                      disabled={isAddingPatient}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nuevo paciente
-                    </Button>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 
                 {/* Formulario para agregar paciente - Versión simple */}
                 {isAddingPatient && (
@@ -934,6 +935,7 @@ export default function ProfilePage() {
               </Card>
             </div>
           </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
