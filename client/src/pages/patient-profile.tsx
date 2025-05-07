@@ -36,7 +36,7 @@ type User = {
   profile_image?: string;
 };
 
-export default function PatientProfilePage() {
+export default function PatientProfilePage(): React.ReactNode {
   // Estado local
   const [isEditing, setIsEditing] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -58,6 +58,12 @@ export default function PatientProfilePage() {
   // Fetch user profile data
   const { data: userData, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/me"]
+  });
+  
+  // Obtener información del psicólogo asociado al paciente
+  const { data: psychologistData } = useQuery<User>({
+    queryKey: ["/api/my-psychologist"],
+    enabled: !!userData && userData.user_type === 'patient',
   });
   
   // Determinar el tipo de usuario basado en los datos reales del usuario
@@ -169,9 +175,26 @@ export default function PatientProfilePage() {
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                   <span className="text-sm">Cuenta activa</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Tu cuenta está vinculada a un profesional y funciona correctamente.
-                </p>
+                {psychologistData ? (
+                  <div className="mt-3 bg-white p-3 rounded-md border border-slate-100">
+                    <h4 className="text-xs text-muted-foreground mb-1">Psicólogo asignado</h4>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-primary">
+                          {psychologistData.full_name?.charAt(0) || "P"}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{psychologistData.full_name}</p>
+                        <p className="text-xs text-muted-foreground">{psychologistData.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Tu cuenta está vinculada a un profesional y funciona correctamente.
+                  </p>
+                )}
               </div>
             </Card>
           </div>
