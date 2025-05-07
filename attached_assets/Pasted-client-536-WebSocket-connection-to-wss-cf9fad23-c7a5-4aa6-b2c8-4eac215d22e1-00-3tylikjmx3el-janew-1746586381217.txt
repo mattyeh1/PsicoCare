@@ -1,0 +1,46 @@
+client:536 WebSocket connection to 'wss://cf9fad23-c7a5-4aa6-b2c8-4eac215d22e1-00-3tylikjmx3el.janeway.replit.dev/?token=ZY1i_fhS3RjC' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=ZY1i_fhS3RjC' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+chunk-XQLYTHWV.js?v=cbd46f63:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+queryClient.ts:95 [Query] GET /api/user - Con credenciales (Sesión local: true)
+queryClient.ts:95 [Query] GET /api/auth/me - Con credenciales (Sesión local: true)
+queryClient.ts:95 [Query] GET /api/user - Con credenciales (Sesión local: true)
+queryClient.ts:95 [Query] GET /api/user - Con credenciales (Sesión local: true)
+queryClient.ts:95 [Query] GET /api/user - Con credenciales (Sesión local: true)
+App.tsx:43 Refetch de usuario completado en ruta protegida
+writing_mode_assistant.js:2 Mounting Writing Mode event listeners
+writing_mode_assistant.js:2 Writing Mode event listeners mounted
+queryClient.ts:124 [Query Response] GET /api/user - Status: 200, SessionID en cookie: false
+queryClient.ts:136 [Query Data] GET /api/user - Datos recibidos: {"id":3,"username":"pepe","email":"pepe@ad.com","full_name":"pepe","user_type":"patient","specialty"...
+queryClient.ts:124 [Query Response] GET /api/auth/me - Status: 200, SessionID en cookie: false
+queryClient.ts:124 [Query Response] GET /api/user - Status: 200, SessionID en cookie: false
+queryClient.ts:136 [Query Data] GET /api/auth/me - Datos recibidos: {"id":3,"username":"pepe","email":"pepe@ad.com","full_name":"pepe","user_type":"patient","specialty"...
+queryClient.ts:136 [Query Data] GET /api/user - Datos recibidos: {"id":3,"username":"pepe","email":"pepe@ad.com","full_name":"pepe","user_type":"patient","specialty"...
+patient-profile-new.tsx:76 Datos de usuario recibidos: {
+  "id": 3,
+  "username": "pepe",
+  "email": "pepe@ad.com",
+  "full_name": "pepe",
+  "user_type": "patient",
+  "specialty": "",
+  "bio": null,
+  "education": null,
+  "certifications": null,
+  "profile_image": null,
+  "created_at": "2025-05-07T02:12:43.097Z",
+  "updated_at": "2025-05-07T02:41:16.334Z",
+  "account_status": "active",
+  "last_login": null,
+  "timezone": "UTC",
+  "language_preference": "es",
+  "unique_code": null,
+  "psychologist_id": 2
+}
+queryClient.ts:124 [Query Response] GET /api/user - Status: 200, SessionID en cookie: false
+queryClient.ts:136 [Query Data] GET /api/user - Datos recibidos: {"id":3,"username":"pepe","email":"pepe@ad.com","full_name":"pepe","user_type":"patient","specialty"...
+queryClient.ts:124 [Query Response] GET /api/user - Status: 200, SessionID en cookie: false
+queryClient.ts:136 [Query Data] GET /api/user - Datos recibidos: {"id":3,"username":"pepe","email":"pepe@ad.com","full_name":"pepe","user_type":"patient","specialty"...
+App.tsx:43 Refetch de usuario completado en ruta protegida
