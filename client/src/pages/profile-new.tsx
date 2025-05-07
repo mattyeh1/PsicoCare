@@ -109,9 +109,6 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isAddingPatient, setIsAddingPatient] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  
-  // Determinar el tipo de usuario
-  const isPsychologist = true; // Por ahora fijo, luego se obtiene del usuario
 
   // Obtener toast
   const { toast } = useToast();
@@ -135,6 +132,9 @@ export default function ProfilePage() {
     queryKey: ["/api/auth/me"]
   });
   
+  // Determinar el tipo de usuario basado en los datos reales del usuario
+  const isPsychologist = userData?.user_type === 'psychologist';
+  
   // Actualizar formulario cuando se reciban los datos
   React.useEffect(() => {
     if (userData) {
@@ -154,9 +154,10 @@ export default function ProfilePage() {
     }
   }, [userData, form]);
 
-  // Fetch patients
+  // Fetch patients solo si es psicólogo
   const { data: patients, isLoading: patientsLoading } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
+    enabled: isPsychologist, // Solo hacer esta consulta si el usuario es psicólogo
   });
   
   // Filtrar pacientes según el término de búsqueda
