@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsiConnect - Plataforma de Gestión para Psicólogos</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 1in;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 2em;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2em;
+            border-bottom: 2px solid #4f46e5;
+            padding-bottom: 1em;
+        }
+        
+        h1 {
+            color: #4f46e5;
+            margin: 0;
+            font-size: 2.2em;
+        }
+        
+        h2 {
+            color: #4f46e5;
+            margin-top: 1.5em;
+            font-size: 1.7em;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.3em;
+        }
+        
+        h3 {
+            color: #4338ca;
+            margin-top: 1.2em;
+            font-size: 1.4em;
+        }
+        
+        h4 {
+            color: #6366f1;
+            margin-top: 1em;
+            font-size: 1.2em;
+        }
+        
+        p {
+            margin-bottom: 1em;
+        }
+        
+        ul {
+            margin-bottom: 1.5em;
+        }
+        
+        li {
+            margin-bottom: 0.5em;
+        }
+        
+        .highlight {
+            font-weight: 600;
+        }
+        
+        .benefits {
+            background-color: #f5f7ff;
+            padding: 1.5em;
+            border-radius: 8px;
+            margin-top: 1.5em;
+        }
+        
+        .benefits ol {
+            padding-left: 1.5em;
+        }
+        
+        .contact {
+            background-color: #4f46e5;
+            color: white;
+            padding: 1.5em;
+            border-radius: 8px;
+            margin-top: 2em;
+            text-align: center;
+        }
+        
+        .contact a {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        .divider {
+            border-top: 1px solid #e5e7eb;
+            margin: 2em 0;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 2em;
+            font-style: italic;
+            color: #6b7280;
+        }
+        
+        .feature-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5em;
+            margin: 1.5em 0;
+        }
+        
+        .feature-box {
+            flex: 1 1 45%;
+            background: #f9fafb;
+            padding: 1.5em;
+            border-radius: 8px;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+            
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PsiConnect</h1>
+            <p class="text-center"><em>Plataforma de Gestión para Psicólogos</em></p>
+        </header>
+        
+        <h2>Transformando la Gestión de Consultas Psicológicas</h2>
+        <p><strong>PsiConnect</strong> es una plataforma integral diseñada específicamente para psicólogos y sus pacientes, que moderniza la gestión de consultas psicológicas a través de una solución tecnológica completa y segura.</p>
+        
+        <div class="divider"></div>
+        
+        <h2>Funcionalidades Principales</h2>
+        
+        <h3>Para Psicólogos</h3>
+        
+        <div class="feature-section">
+            <div class="feature-box">
+                <h4>Gestión de Pacientes</h4>
+                <ul>
+                    <li><span class="highlight">Vista completa de pacientes:</span> Panel visual con toda la información de los pacientes asignados</li>
+                    <li><span class="highlight">Creación de cuentas para pacientes:</span> Capacidad de generar accesos para sus pacientes con código único de vinculación</li>
+                    <li><span class="highlight">Expedientes digitales:</span> Almacenamiento seguro de historial, notas y documentación relevante</li>
+                    <li><span class="highlight">Visualización de datos demográficos:</span> Acceso a información básica de cada paciente</li>
+                </ul>
+            </div>
+            
+            <div class="feature-box">
+                <h4>Administración de Citas</h4>
+                <ul>
+                    <li><span class="highlight">Calendario interactivo:</span> Vista integral de todas las citas programadas</li>
+                    <li><span class="highlight">Gestión de disponibilidad:</span> Configuración de horarios disponibles para consultas</li>
+                    <li><span class="highlight">Aprobación/rechazo de solicitudes:</span> Control total sobre las solicitudes de citas</li>
+                    <li><span class="highlight">Historial de consultas:</span> Registro completo de todas las consultas realizadas</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="feature-section">
+            <div class="feature-box">
+                <h4>Comunicación Segura</h4>
+                <ul>
+                    <li><span class="highlight">Mensajería interna:</span> Sistema de comunicación directa con pacientes</li>
+                    <li><span class="highlight">Plantillas de mensajes:</span> Creación y uso de plantillas para comunicaciones frecuentes</li>
+                    <li><span class="highlight">Notificaciones:</span> Alertas sobre nuevas solicitudes o mensajes</li>
+                </ul>
+            </div>
+            
+            <div class="feature-box">
+                <h4>Documentación Legal</h4>
+                <ul>
+                    <li><span class="highlight">Formularios de consentimiento:</span> Creación y gestión de documentos legales</li>
+                    <li><span class="highlight">Firma digital:</span> Capacidad para que los pacientes firmen documentos electrónicamente</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h3>Para Pacientes</h3>
+        
+        <div class="feature-section">
+            <div class="feature-box">
+                <h4>Perfil Personal</h4>
+                <ul>
+                    <li><span class="highlight">Datos personales:</span> Gestión de información de contacto y perfil</li>
+                    <li><span class="highlight">Visualización de psicólogo asignado:</span> Información sobre el profesional que los atiende</li>
+                </ul>
+            </div>
+            
+            <div class="feature-box">
+                <h4>Gestión de Citas</h4>
+                <ul>
+                    <li><span class="highlight">Solicitud de citas:</span> Interfaz para solicitar nuevas consultas</li>
+                    <li><span class="highlight">Calendario de sesiones:</span> Visualización de próximas citas</li>
+                    <li><span class="highlight">Subida de comprobantes de pago:</span> Capacidad para adjuntar recibos de pagos realizados</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="feature-box">
+            <h4>Comunicación</h4>
+            <ul>
+                <li><span class="highlight">Mensajes directos:</span> Canal de comunicación directa con su psicólogo</li>
+                <li><span class="highlight">Historial de conversaciones:</span> Acceso al registro de comunicaciones previas</li>
+            </ul>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <h2>Características Técnicas</h2>
+        
+        <div class="feature-section">
+            <div class="feature-box">
+                <h4>Seguridad y Privacidad</h4>
+                <ul>
+                    <li><span class="highlight">Autenticación robusta:</span> Sistema seguro de inicio de sesión</li>
+                    <li><span class="highlight">Separación de interfaces:</span> Entornos diferenciados para psicólogos y pacientes</li>
+                    <li><span class="highlight">Protección de datos:</span> Cumplimiento con normativas de privacidad</li>
+                    <li><span class="highlight">Control de acceso:</span> Roles claramente definidos con permisos específicos</li>
+                </ul>
+            </div>
+            
+            <div class="feature-box">
+                <h4>Diseño y Experiencia de Usuario</h4>
+                <ul>
+                    <li><span class="highlight">Interfaz moderna:</span> Diseño intuitivo y agradable visualmente</li>
+                    <li><span class="highlight">Diseño responsivo:</span> Adaptación a diferentes dispositivos (móvil, tablet, escritorio)</li>
+                    <li><span class="highlight">Experiencia optimizada:</span> Flujos de trabajo pensados para maximizar la eficiencia</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="feature-box">
+            <h4>Infraestructura</h4>
+            <ul>
+                <li><span class="highlight">Plataforma web:</span> Acceso desde cualquier navegador sin necesidad de instalación</li>
+                <li><span class="highlight">Base de datos segura:</span> Almacenamiento cifrado de información sensible</li>
+                <li><span class="highlight">Arquitectura escalable:</span> Diseñado para crecer según las necesidades</li>
+            </ul>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="benefits">
+            <h2>Beneficios para Profesionales</h2>
+            <ol>
+                <li><span class="highlight">Ahorro de tiempo:</span> Reducción drástica en tareas administrativas</li>
+                <li><span class="highlight">Mejora en la organización:</span> Todo centralizado en una única plataforma</li>
+                <li><span class="highlight">Profesionalización del servicio:</span> Imagen más moderna y eficiente</li>
+                <li><span class="highlight">Reducción de errores:</span> Eliminación de problemas derivados de la gestión manual</li>
+                <li><span class="highlight">Mejor experiencia para el paciente:</span> Mayor satisfacción y retención de clientes</li>
+            </ol>
+        </div>
+        
+        <div class="contact">
+            <h2 style="color: white; border-bottom: 1px solid rgba(255,255,255,0.2);">Contacto</h2>
+            <p>Para más información o solicitar una demostración personalizada:</p>
+            <p><strong>Email:</strong> info@psiconnect.com</p>
+            <p><strong>Teléfono:</strong> +XX XXX-XXX-XXX</p>
+            <p><strong>Web:</strong> www.psiconnect.com</p>
+        </div>
+        
+        <footer>
+            <p>PsiConnect - Conectando profesionales con sus pacientes de manera eficiente</p>
+        </footer>
+    </div>
+</body>
+</html>
