@@ -145,14 +145,33 @@ const Profile = () => {
     },
   });
 
+  // Schema extendido para paciente con credenciales
+  const patientUserFormSchema = patientFormSchema.extend({
+    username: z.string()
+      .min(4, { message: "El nombre de usuario debe tener al menos 4 caracteres" })
+      .max(20, { message: "El nombre de usuario debe tener menos de 20 caracteres" })
+      .regex(/^[a-zA-Z0-9_]+$/, { message: "Solo se permiten letras, números y guiones bajos" }),
+    password: z.string()
+      .min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+    confirmPassword: z.string(),
+    createAccount: z.boolean().default(false),
+  }).refine((data) => !data.createAccount || data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
+
   // Patient form
-  const patientForm = useForm<z.infer<typeof patientFormSchema>>({
-    resolver: zodResolver(patientFormSchema),
+  const patientForm = useForm<z.infer<typeof patientUserFormSchema>>({
+    resolver: zodResolver(patientUserFormSchema),
     defaultValues: {
       name: "",
       email: "",
       phone: "",
       notes: "",
+      username: "",
+      password: "",
+      confirmPassword: "",
+      createAccount: false,
     },
   });
 
@@ -182,21 +201,51 @@ const Profile = () => {
   };
 
   // Submit patient form
-  const onSubmitPatient = async (values: z.infer<typeof patientFormSchema>) => {
+  const onSubmitPatient = async (values: z.infer<typeof patientUserFormSchema>) => {
     setIsLoading(true);
     try {
       // Añadir el ID del psicólogo explícitamente
       const patientData = {
-        ...values,
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        notes: values.notes,
         psychologist_id: user?.id
       };
       
-      const res = await apiRequest("POST", "/api/patients", patientData);
-      await res.json();
+      // Si se marca la creación de cuenta, también creamos usuario
+      if (values.createAccount) {
+        // Primero creamos el usuario de tipo paciente
+        const userData = {
+          username: values.username,
+          password: values.password,
+          email: values.email,
+          full_name: values.name,
+          user_type: 'patient',
+          psychologist_id: user?.id
+        };
+        
+        // Enviar petición para crear usuario paciente
+        const userRes = await apiRequest("POST", "/api/register/patient", userData);
+        const userJson = await userRes.json();
+        
+        if (!userRes.ok) {
+          throw new Error(userJson.message || "Error al crear la cuenta de usuario");
+        }
+        
+        toast({
+          title: "Cuenta creada",
+          description: "Se ha creado la cuenta de paciente con éxito",
+        });
+      } else {
+        // Solo crear el paciente sin cuenta de usuario
+        const res = await apiRequest("POST", "/api/patients", patientData);
+        await res.json();
+      }
       
       toast({
         title: "Paciente agregado",
-        description: "El paciente ha sido agregado correctamente.",
+        description: "El paciente ha sido agregado correctamente a tu lista de pacientes.",
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
@@ -659,79 +708,226 @@ const Profile = () => {
                       </CardHeader>
                       <CardContent className="pt-6">
                         <Form {...patientForm}>
-                          <form onSubmit={patientForm.handleSubmit(onSubmitPatient)} className="space-y-4">
-                            <FormField
-                              control={patientForm.control}
-                              name="name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Nombre completo</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="Nombre del paciente"
-                                      {...field}
-                                      disabled={isLoading}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                          <form onSubmit={patientForm.handleSubmit(onSubmitPatient)} className="space-y-6">
+                            {/* Datos básicos del paciente */}
+                            <div>
+                              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-primary/70" /> 
+                                Información del paciente
+                              </h3>
+                              <div className="space-y-4">
+                                <FormField
+                                  control={patientForm.control}
+                                  name="name"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Nombre completo</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          placeholder="Nombre del paciente"
+                                          {...field}
+                                          disabled={isLoading}
+                                          className="rounded-md"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={patientForm.control}
+                                  name="email"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Email</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          placeholder="paciente@email.com"
+                                          {...field}
+                                          disabled={isLoading}
+                                          className="rounded-md"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={patientForm.control}
+                                  name="phone"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Teléfono (opcional)</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          placeholder="+54 11 1234 5678"
+                                          {...field}
+                                          disabled={isLoading}
+                                          className="rounded-md"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={patientForm.control}
+                                  name="notes"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Notas (opcional)</FormLabel>
+                                      <FormControl>
+                                        <Textarea 
+                                          placeholder="Notas relevantes sobre el paciente"
+                                          className="min-h-24 rounded-md"
+                                          {...field}
+                                          disabled={isLoading}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
                             
-                            <FormField
-                              control={patientForm.control}
-                              name="email"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Email</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="paciente@email.com"
-                                      {...field}
-                                      disabled={isLoading}
+                            {/* Sección de creación de cuenta */}
+                            <div className="pt-4 border-t border-muted/60">
+                              <FormField
+                                control={patientForm.control}
+                                name="createAccount"
+                                render={({ field }) => (
+                                  <FormItem className="space-y-3">
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/20">
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel className="flex items-center gap-2 text-base">
+                                          <Lock className="h-4 w-4 text-primary" />
+                                          Crear cuenta de usuario para el paciente
+                                        </FormLabel>
+                                        <FormDescription>
+                                          Si activas esta opción, se creará una cuenta para que el paciente pueda acceder directamente a su información y gestionar sus citas.
+                                        </FormDescription>
+                                      </div>
+                                      <FormControl>
+                                        <Switch
+                                          checked={field.value}
+                                          onCheckedChange={field.onChange}
+                                          disabled={isLoading}
+                                        />
+                                      </FormControl>
+                                    </div>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              {patientForm.watch("createAccount") && (
+                                <div className="mt-6 p-6 border border-primary/20 rounded-lg bg-primary/5">
+                                  <h4 className="text-base font-medium mb-4 flex items-center gap-2">
+                                    <UserPlus className="h-4 w-4 text-primary" />
+                                    Datos de acceso para el paciente
+                                  </h4>
+                                  
+                                  <div className="space-y-4">
+                                    <FormField
+                                      control={patientForm.control}
+                                      name="username"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>
+                                            <span className="flex items-center gap-2">
+                                              <User className="h-3.5 w-3.5" />
+                                              Nombre de usuario
+                                            </span>
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input 
+                                              placeholder="Ej: paciente_silva123"
+                                              {...field}
+                                              disabled={isLoading}
+                                              className="rounded-md"
+                                            />
+                                          </FormControl>
+                                          <FormDescription className="text-xs">
+                                            Solo letras, números y guiones bajos
+                                          </FormDescription>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
                                     />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={patientForm.control}
-                              name="phone"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Teléfono (opcional)</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="+54 11 1234 5678"
-                                      {...field}
-                                      disabled={isLoading}
+                                    
+                                    <FormField
+                                      control={patientForm.control}
+                                      name="password"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>
+                                            <span className="flex items-center gap-2">
+                                              <Lock className="h-3.5 w-3.5" />
+                                              Contraseña
+                                            </span>
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input 
+                                              type="password"
+                                              placeholder="Contraseña segura"
+                                              {...field}
+                                              disabled={isLoading}
+                                              className="rounded-md"
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
                                     />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={patientForm.control}
-                              name="notes"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Notas (opcional)</FormLabel>
-                                  <FormControl>
-                                    <Textarea 
-                                      placeholder="Notas relevantes sobre el paciente"
-                                      className="min-h-24"
-                                      {...field}
-                                      disabled={isLoading}
+                                  
+                                    <FormField
+                                      control={patientForm.control}
+                                      name="confirmPassword"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>
+                                            <span className="flex items-center gap-2">
+                                              <ShieldCheck className="h-3.5 w-3.5" />
+                                              Confirmar contraseña
+                                            </span>
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input 
+                                              type="password"
+                                              placeholder="Confirme la contraseña"
+                                              {...field}
+                                              disabled={isLoading}
+                                              className="rounded-md"
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
                                     />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
+                                  </div>
+                                  
+                                  <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                                    <div className="flex items-start gap-3">
+                                      <div>
+                                        <Info className="h-5 w-5 text-yellow-600 mt-0.5" />
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-yellow-700">
+                                          Información importante
+                                        </p>
+                                        <p className="text-sm text-yellow-600 mt-1">
+                                          Al crear una cuenta para el paciente, este estará automáticamente vinculado a tu consulta. Podrá acceder a su propio panel para gestionar citas y comunicarse contigo.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
                               )}
-                            />
+                            </div>
                             
                             <div className="flex gap-2 justify-end pt-4">
                               <Button
@@ -739,14 +935,26 @@ const Profile = () => {
                                 variant="outline"
                                 onClick={() => setIsAddingPatient(false)}
                                 disabled={isLoading}
+                                className="rounded-full px-4"
                               >
                                 Cancelar
                               </Button>
                               <Button 
                                 type="submit"
                                 disabled={isLoading}
+                                className="rounded-full px-6"
                               >
-                                {isLoading ? "Agregando..." : "Agregar paciente"}
+                                {isLoading ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Guardando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Guardar paciente
+                                  </>
+                                )}
                               </Button>
                             </div>
                           </form>
