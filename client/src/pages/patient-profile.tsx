@@ -71,8 +71,10 @@ export default function PatientProfilePage(): React.ReactNode {
   console.log("Intentando obtener psicólogo con este ID:", psychologistId);
   
   const { data: psychologistData, isLoading: psychologistLoading, error: psychologistError } = useQuery<User>({
-    queryKey: [`/api/users/${psychologistId}`],
+    queryKey: ["/api/users", psychologistId?.toString()],
     enabled: !!psychologistId && userData?.user_type === 'patient',
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
   
   // Log para verificar que se está obteniendo correctamente el psicólogo
