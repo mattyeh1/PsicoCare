@@ -275,23 +275,39 @@ const Profile = () => {
 
         {userData?.user_type === 'psychologist' && userData?.unique_code && (
           <div className="mb-8">
-            <div className="bg-card rounded-xl shadow-md overflow-hidden border border-muted">
-              <div className="flex flex-col md:flex-row justify-between items-center">
-                <div className="p-6 md:p-8 md:w-3/5">
-                  <h3 className="text-xl font-semibold mb-3">Código para tus pacientes</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Comparte este código con tus pacientes para que puedan vincularse a tu consulta al registrarse.
+            <div className="bg-gradient-to-r from-primary/20 to-primary/10 rounded-xl shadow-lg overflow-hidden">
+              <div className="flex flex-col lg:flex-row gap-6 p-0">
+                <div className="p-8 lg:p-10 lg:w-3/5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-primary/80 rounded-full p-2">
+                      <User className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-primary-700">Código para tus pacientes</h3>
+                  </div>
+                  <p className="text-muted-foreground text-base max-w-lg">
+                    Comparte este código único con tus pacientes para que puedan vincularse a tu consulta al momento de registrarse. Este código es exclusivo para ti.
                   </p>
+                  <div className="flex items-center gap-2 mt-6">
+                    <div className="bg-yellow-100 border-l-4 border-yellow-400 rounded-r p-3 flex items-center">
+                      <div className="pl-3 pr-2">
+                        <Info className="h-5 w-5 text-yellow-600" />
+                      </div>
+                      <p className="text-sm text-yellow-700">
+                        Al registrarse con este código, los pacientes quedarán automáticamente asignados a tu consulta.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-primary text-primary-foreground w-full md:w-2/5 p-6 md:p-8 flex flex-col items-center justify-center md:border-l border-primary-foreground/10">
+                <div className="bg-gradient-to-r from-primary to-primary-600 text-white w-full lg:w-2/5 p-10 flex flex-col items-center justify-center">
                   <div className="flex flex-col items-center">
-                    <div className="text-5xl font-mono tracking-[0.5em] pb-1 font-medium mb-4">
+                    <p className="uppercase tracking-wider text-sm mb-2 text-white/80">Tu código único</p>
+                    <div className="text-5xl font-mono tracking-widest pb-1 font-semibold mb-6 bg-primary-950/10 px-10 py-6 rounded-lg shadow-inner">
                       {userData.unique_code}
                     </div>
                     <Button
                       variant="secondary"
-                      size="sm"
-                      className="mt-2 px-4 py-1 h-9"
+                      size="lg"
+                      className="mt-4 px-6 py-2 h-11 rounded-full shadow-md hover:shadow-lg transition-all"
                       onClick={() => {
                         navigator.clipboard.writeText(userData.unique_code);
                         toast({
@@ -300,7 +316,7 @@ const Profile = () => {
                         });
                       }}
                     >
-                      <Copy className="h-4 w-4 mr-2" />
+                      <Copy className="h-5 w-5 mr-2" />
                       Copiar código
                     </Button>
                   </div>
@@ -317,12 +333,17 @@ const Profile = () => {
           </TabsList>
           
           <TabsContent value="profile" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 pb-6 border-b">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
-                    <CardTitle>{isPsychologist ? "Perfil profesional" : "Perfil personal"}</CardTitle>
-                    <CardDescription>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/20 p-1.5 rounded-md">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <CardTitle>{isPsychologist ? "Perfil profesional" : "Perfil personal"}</CardTitle>
+                    </div>
+                    <CardDescription className="mt-1.5">
                       Actualiza tu información {isPsychologist ? "personal y profesional" : "personal"}
                     </CardDescription>
                   </div>
@@ -330,60 +351,107 @@ const Profile = () => {
                     variant={isEditing ? "outline" : "default"} 
                     onClick={() => setIsEditing(!isEditing)}
                     disabled={isLoading}
+                    className="self-start md:self-auto rounded-full px-5"
                   >
+                    <Edit className={`h-4 w-4 mr-2 ${isEditing ? "hidden" : "inline"}`} />
                     {isEditing ? "Cancelar" : "Editar perfil"}
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-8">
                 {!isEditing ? (
                   // View mode
                   <div className="space-y-8">
                     <div className="flex flex-col md:flex-row gap-8">
-                      {userData?.profile_image && (
-                        <div className="flex-none">
+                      <div className="md:w-1/3 lg:w-1/4 flex-none">
+                        {userData?.profile_image ? (
                           <img 
                             src={userData.profile_image}
                             alt={userData.full_name}
-                            className="w-48 h-48 object-cover rounded-lg"
+                            className="w-full max-w-[200px] aspect-square object-cover rounded-lg shadow-md mx-auto"
                           />
+                        ) : (
+                          <div className="w-full max-w-[200px] aspect-square bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
+                            <User className="h-20 w-20 text-primary/50" />
+                          </div>
+                        )}
+                        
+                        {/* Información de contacto en móvil */}
+                        <div className="mt-6 p-4 bg-muted/40 rounded-lg md:hidden">
+                          <h3 className="text-base font-semibold border-b border-muted pb-2 mb-3 flex items-center gap-2">
+                            <Mail className="h-4 w-4" /> 
+                            Información de contacto
+                          </h3>
+                          <p className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">Email:</span> 
+                            <span className="text-muted-foreground">{userData?.email}</span>
+                          </p>
                         </div>
-                      )}
-                      <div className="flex-grow space-y-4">
-                        <h2 className="text-2xl font-bold font-serif">
-                          <span className="block">{userData?.full_name}</span>
-                          <span className="block text-primary-500">{userData?.specialty}</span>
-                        </h2>
-                        <p className="text-lg">{userData?.bio}</p>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {isPsychologist && (
-                        <>
-                          <h3 className="text-lg font-semibold border-b pb-2">Educación y certificaciones</h3>
-                          <div className="space-y-2">
-                            {userData?.education && (
-                              <div className="ml-4">
-                                <p className="whitespace-pre-line">{userData.education}</p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <h3 className="text-lg font-semibold border-b pb-2">Certificaciones</h3>
-                          <div className="space-y-2">
-                            {userData?.certifications && (
-                              <div className="ml-4">
-                                <p className="whitespace-pre-line">{userData.certifications}</p>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
                       
-                      <h3 className="text-lg font-semibold border-b pb-2">Información de contacto</h3>
-                      <div className="ml-4">
-                        <p><strong>Email:</strong> {userData?.email}</p>
+                      <div className="md:w-2/3 lg:w-3/4 flex-grow space-y-6">
+                        <div className="pb-4 border-b border-muted">
+                          <h2 className="text-2xl font-bold mb-1">
+                            {userData?.full_name || "Nombre completo"}
+                          </h2>
+                          {isPsychologist && (
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary font-medium px-3 py-1">
+                                {userData?.specialty || "Especialidad"}
+                              </Badge>
+                            </div>
+                          )}
+                          
+                          {userData?.bio && (
+                            <div className="mt-4 text-muted-foreground">
+                              <p className="leading-relaxed">{userData.bio}</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {isPsychologist && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                              <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-primary/70" /> 
+                                Educación
+                              </h3>
+                              <div className="bg-muted/30 rounded-lg p-4">
+                                {userData?.education ? (
+                                  <p className="text-sm whitespace-pre-line">{userData.education}</p>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground italic">No hay información de educación disponible</p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                              <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-primary/70" /> 
+                                Certificaciones
+                              </h3>
+                              <div className="bg-muted/30 rounded-lg p-4">
+                                {userData?.certifications ? (
+                                  <p className="text-sm whitespace-pre-line">{userData.certifications}</p>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground italic">No hay certificaciones disponibles</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Información de contacto en desktop */}
+                        <div className="hidden md:block p-4 bg-muted/40 rounded-lg mt-8">
+                          <h3 className="text-base font-semibold border-b border-muted pb-2 mb-3 flex items-center gap-2">
+                            <Mail className="h-4 w-4" /> 
+                            Información de contacto
+                          </h3>
+                          <p className="flex items-center gap-2">
+                            <span className="font-medium">Email:</span> 
+                            <span className="text-muted-foreground">{userData?.email}</span>
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -709,60 +777,92 @@ const Profile = () => {
               {!isAddingPatient && (
                 <div>
                   {patientsLoading ? (
-                    <div className="flex justify-center items-center py-10">
-                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                    <div className="flex justify-center items-center py-20">
+                      <div className="relative">
+                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <User className="h-6 w-6 text-primary/70" />
+                        </div>
+                      </div>
                     </div>
                   ) : patients && patients.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredPatients.map((patient) => (
-                        <Card key={patient.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                          <div className="bg-primary/10 p-4">
+                        <Card 
+                          key={patient.id} 
+                          className="overflow-hidden group hover:shadow-lg transition-all duration-300 border border-muted/50 hover:border-primary/20"
+                        >
+                          <div className="bg-gradient-to-r from-primary/15 to-primary/5 p-5 relative">
                             <div className="flex items-center gap-4">
-                              <div className="bg-primary/90 text-primary-foreground rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold">
+                              <div className="bg-gradient-to-br from-primary/80 to-primary-600/80 text-white rounded-full h-14 w-14 flex items-center justify-center text-xl font-semibold shadow-sm group-hover:shadow-md transition-shadow">
                                 {patient.name.substring(0, 1).toUpperCase()}
                               </div>
                               <div>
-                                <h3 className="font-medium text-lg">{patient.name}</h3>
-                                <p className="text-sm text-muted-foreground">{patient.created_at ? 
-                                  `Desde ${format(new Date(patient.created_at), "MMM yyyy")}` : 
-                                  "Paciente"}</p>
+                                <h3 className="font-semibold text-lg text-primary-900">{patient.name}</h3>
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <Calendar className="h-3.5 w-3.5 mr-1.5 opacity-70" />
+                                  {patient.created_at ? 
+                                    `Desde ${format(new Date(patient.created_at), "MMMM yyyy")}` : 
+                                    "Paciente"}
+                                </div>
                               </div>
+                            </div>
+                            
+                            {/* Badge flotante */}
+                            <div className="absolute top-3 right-3">
+                              <Badge 
+                                variant="outline" 
+                                className="bg-white/80 font-medium text-xs border-primary/20 px-2.5 py-0.5"
+                              >
+                                Paciente
+                              </Badge>
                             </div>
                           </div>
                           
-                          <CardContent className="pt-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <p className="text-sm">{patient.email}</p>
+                          <CardContent className="p-5">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-3 pb-2 border-b border-muted/70">
+                                <div className="bg-primary/10 rounded-full p-1.5">
+                                  <Mail className="h-4 w-4 text-primary/70" />
+                                </div>
+                                <p className="text-sm font-medium text-primary-900">{patient.email}</p>
                               </div>
                               
                               {patient.phone && (
-                                <div className="flex items-center gap-2">
-                                  <Phone className="h-4 w-4 text-muted-foreground" />
+                                <div className="flex items-center gap-3">
+                                  <div className="bg-primary/10 rounded-full p-1.5">
+                                    <Phone className="h-4 w-4 text-primary/70" />
+                                  </div>
                                   <p className="text-sm">{patient.phone}</p>
                                 </div>
                               )}
                               
                               {patient.notes && (
-                                <div className="flex items-start gap-2 mt-3">
-                                  <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                  <p className="text-sm text-muted-foreground line-clamp-2">{patient.notes}</p>
+                                <div className="pt-2 mt-2 border-t border-muted">
+                                  <div className="flex items-start gap-3">
+                                    <div className="bg-yellow-100 rounded-full p-1.5 mt-0.5">
+                                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium text-yellow-700 mb-1">Notas importantes</p>
+                                      <p className="text-sm text-muted-foreground line-clamp-2">{patient.notes}</p>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>
                           </CardContent>
                           
-                          <CardFooter className="border-t bg-muted/30 px-4 py-3">
-                            <div className="flex items-center justify-between w-full">
+                          <div className="px-5 pb-5">
+                            <div className="flex flex-wrap gap-2">
                               <Button
-                                variant="outline"
+                                variant="default"
                                 size="sm"
-                                className="rounded-full h-8 px-3"
+                                className="rounded-full h-9 px-4 bg-primary/90 hover:bg-primary flex-1"
                                 asChild
                               >
                                 <a href={`/appointments?patient=${patient.id}`}>
-                                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                                  <Calendar className="h-4 w-4 mr-2" />
                                   Citas
                                 </a>
                               </Button>
@@ -770,11 +870,11 @@ const Profile = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-full h-8 px-3"
+                                className="rounded-full h-9 px-4 border-primary/20 text-primary-700 hover:bg-primary/10 flex-1"
                                 asChild
                               >
                                 <a href={`/messages?patient=${patient.id}`}>
-                                  <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                                  <MessageSquare className="h-4 w-4 mr-2" />
                                   Mensajes
                                 </a>
                               </Button>
@@ -782,34 +882,40 @@ const Profile = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-full h-8 px-3"
+                                className="rounded-full h-9 px-4 border-primary/20 text-primary-700 hover:bg-primary/10 flex-1"
                                 asChild
                               >
                                 <a href={`/consent-forms?patient=${patient.id}`}>
-                                  <FileText className="h-3.5 w-3.5 mr-1.5" />
-                                  Docs
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Documentos
                                 </a>
                               </Button>
                             </div>
-                          </CardFooter>
+                          </div>
                         </Card>
                       ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="bg-muted rounded-full p-3 mb-4">
-                        <User className="h-6 w-6 text-muted-foreground" />
+                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-muted/10 rounded-lg border border-dashed border-muted">
+                      <div className="relative">
+                        <div className="bg-muted/20 rounded-full p-6 mb-4 group-hover:bg-primary/5 transition-colors">
+                          <User className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                        <div className="absolute bottom-3 right-2 bg-primary rounded-full p-1.5 shadow-sm">
+                          <Plus className="h-5 w-5 text-white" />
+                        </div>
                       </div>
-                      <h3 className="text-lg font-medium mb-1">No hay pacientes registrados</h3>
-                      <p className="text-muted-foreground text-sm max-w-md">
-                        Agrega un nuevo paciente para comenzar a gestionar su información, citas y documentos.
+                      <h3 className="text-xl font-semibold mb-2">No hay pacientes registrados</h3>
+                      <p className="text-muted-foreground text-base max-w-md mb-8">
+                        Agrega un nuevo paciente para comenzar a gestionar su información, citas y documentos en tu plataforma de gestión profesional.
                       </p>
                       <Button 
                         onClick={() => setIsAddingPatient(true)} 
-                        className="mt-6"
+                        className="rounded-full px-6 py-2 h-11"
+                        size="lg"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Agregar paciente
+                        <Plus className="h-5 w-5 mr-2" />
+                        Agregar mi primer paciente
                       </Button>
                     </div>
                   )}
