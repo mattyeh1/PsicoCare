@@ -11,7 +11,8 @@ import RegisterSelection from "@/pages/register-selection";
 import RegisterPsychologist from "@/pages/register-psychologist";
 import RegisterPatient from "@/pages/register-patient";
 import Dashboard from "@/pages/dashboard";
-import Profile from "@/pages/profile-new";
+import PsychologistProfile from "@/pages/profile-new";
+import PatientProfile from "@/pages/patient-profile";
 import Appointments from "@/pages/appointments";
 import Messages from "@/pages/messages";
 import ConsentForms from "@/pages/consent-forms";
@@ -152,7 +153,10 @@ function AppRoutes() {
         <ProtectedRoute path="/patient-dashboard" component={PatientDashboard} />
       </Route>
       <Route path="/profile">
-        <ProtectedRoute path="/profile" component={Profile} />
+        <ProtectedRoute path="/profile" component={PatientProfile} />
+      </Route>
+      <Route path="/psychologist-profile">
+        <PsychologistRoute path="/psychologist-profile" component={PsychologistProfile} />
       </Route>
       <Route path="/appointments">
         <PsychologistRoute path="/appointments" component={Appointments} />

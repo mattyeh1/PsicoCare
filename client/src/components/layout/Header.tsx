@@ -120,7 +120,7 @@ const Header = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <div 
-                      onClick={() => window.location.href = "/profile"}
+                      onClick={() => window.location.href = user?.user_type === 'psychologist' ? "/psychologist-profile" : "/profile"}
                       className="flex items-center gap-2 cursor-pointer w-full"
                     >
                       <User className="h-4 w-4" />
@@ -241,7 +241,7 @@ const Header = () => {
                   className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:text-primary hover:bg-neutral-50"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    window.location.href = "/profile";
+                    window.location.href = user?.user_type === 'psychologist' ? "/psychologist-profile" : "/profile";
                   }}
                 >
                   Perfil
