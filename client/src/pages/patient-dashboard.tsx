@@ -474,6 +474,51 @@ const PatientDashboard = () => {
                           </SelectContent>
                         </Select>
                       </div>
+                      
+                      {/* Comprobante de pago */}
+                      <div className="grid grid-cols-4 items-start gap-4">
+                        <Label htmlFor="payment" className="text-right pt-2">
+                          Comprobante<br/>de pago
+                        </Label>
+                        <div className="col-span-3 space-y-2">
+                          {!fileName ? (
+                            <div className="flex flex-col gap-2">
+                              <Input
+                                id="payment_receipt"
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept=".jpg,.jpeg,.png,.pdf"
+                                className="border border-input bg-background text-sm"
+                                disabled={isSubmitting}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Formatos aceptados: JPG, PNG, PDF. Máximo 5MB.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center justify-between p-2 border rounded-md bg-gray-50">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-primary" />
+                                  <span className="text-sm text-ellipsis overflow-hidden">{fileName}</span>
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={handleRemoveFile}
+                                  disabled={isSubmitting}
+                                >
+                                  <X className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                El comprobante se adjuntará a tu solicitud de cita.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button 
