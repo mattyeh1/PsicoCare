@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +17,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -50,7 +52,12 @@ import {
   Mail, 
   Search,
   Info,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  UserPlus,
+  ShieldCheck,
+  Loader2,
+  Save
 } from "lucide-react";
 
 // Form schema for profile update
@@ -70,39 +77,7 @@ const formSchema = z.object({
   profile_image: z.string().optional(),
 });
 
-// Patient form schema
-const patientUserFormSchema = z.object({
-  name: z.string().min(3, {
-    message: "El nombre del paciente debe tener al menos 3 caracteres.",
-  }),
-  email: z.string().email({
-    message: "Ingresa un email válido.",
-  }),
-  phone: z.string().optional(),
-  notes: z.string().optional(),
-  // Campos para la creación de cuenta
-  createAccount: z.boolean().default(false),
-  username: z.string().optional()
-    .refine(val => !val || val.length >= 4, {
-      message: "El nombre de usuario debe tener al menos 4 caracteres"
-    }),
-  password: z.string().optional()
-    .refine(val => !val || val.length >= 6, {
-      message: "La contraseña debe tener al menos 6 caracteres"
-    }),
-}).refine(
-  // Si createAccount es true, los campos username y password son obligatorios
-  (data) => {
-    if (data.createAccount) {
-      return !!data.username && !!data.password;
-    }
-    return true;
-  },
-  {
-    message: "Nombre de usuario y contraseña son obligatorios para crear una cuenta",
-    path: ["username", "password"],
-  }
-);
+// Schema para el formulario de pacientes con soporte para creación de cuentas
 
 const Profile = () => {
   const { user } = useAuth();
@@ -113,27 +88,43 @@ const Profile = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const isPsychologist = user?.user_type === 'psychologist';
 
-  // Fetch user profile data
-  const { data: userData, isLoading: userLoading } = useQuery({
-    queryKey: ["/api/auth/me"],
-    onSuccess: (data) => {
-      if (data) {
-        form.reset({
-          full_name: data.full_name,
-          email: data.email,
-          specialty: data.specialty,
-          bio: data.bio || "",
-          education: data.education || "",
-          certifications: data.certifications || "",
-          profile_image: data.profile_image || "",
-        });
-        // Log para depuración
-        console.log("Datos de usuario recibidos:", JSON.stringify(data, null, 2));
-        console.log("Código de psicólogo:", data.unique_code);
-        console.log("Tipo de usuario:", data.user_type);
-      }
+  // Profile form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      full_name: user?.full_name || "",
+      email: user?.email || "",
+      specialty: user?.specialty || "",
+      bio: "",
+      education: "",
+      certifications: "",
+      profile_image: "",
     },
   });
+
+  // Fetch user profile data
+  const { data: userData, isLoading: userLoading } = useQuery<any>({
+    queryKey: ["/api/auth/me"]
+  });
+  
+  // Actualizar formulario cuando se reciban los datos
+  React.useEffect(() => {
+    if (userData) {
+      form.reset({
+        full_name: userData.full_name || "",
+        email: userData.email || "",
+        specialty: userData.specialty || "",
+        bio: userData.bio || "",
+        education: userData.education || "",
+        certifications: userData.certifications || "",
+        profile_image: userData.profile_image || "",
+      });
+      // Log para depuración
+      console.log("Datos de usuario recibidos:", JSON.stringify(userData, null, 2));
+      console.log("Código de psicólogo:", userData.unique_code);
+      console.log("Tipo de usuario:", userData.user_type);
+    }
+  }, [userData, form]);
 
   // Fetch patients
   const { data: patients, isLoading: patientsLoading } = useQuery<Patient[]>({
@@ -152,20 +143,6 @@ const Profile = () => {
       (patient.notes && patient.notes.toLowerCase().includes(query))
     );
   }) || [];
-
-  // Profile form
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      full_name: user?.full_name || "",
-      email: user?.email || "",
-      specialty: user?.specialty || "",
-      bio: "",
-      education: "",
-      certifications: "",
-      profile_image: "",
-    },
-  });
 
   // Extendemos el esquema para incluir validación de contraseña coincidente
   const patientUserFormSchema = z.object({
