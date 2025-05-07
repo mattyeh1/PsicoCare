@@ -58,20 +58,18 @@ export default function PatientProfile() {
   
   // Obtener datos del usuario actual
   const { data: userData, isLoading: userLoading } = useQuery<User>({
-    queryKey: ["/api/auth/me"]
+    queryKey: ["/api/user"]
   });
   
   // Obtener información del psicólogo asociado al paciente
-  const { data: psychologistData } = useQuery<User>({
+  const { data: psychologistData, isLoading: psychologistLoading } = useQuery<User>({
     queryKey: ["/api/my-psychologist"],
-    enabled: userData?.user_type === 'patient',
-    retry: 1,
-    refetchOnWindowFocus: false,
+    enabled: !!userData && userData?.user_type === 'patient',
   });
   
-  console.log("Datos de psicólogo:", psychologistData);
+  console.log("Estado actual:", { userData, psychologistData });
   
-  // Determinar el tipo de usuario basado en los datos reales del usuario
+  // Determinar el tipo de usuario basado en los datos reales
   const isPatient = userData?.user_type === 'patient';
   
   // Actualizar formulario cuando se reciban los datos
@@ -102,7 +100,7 @@ export default function PatientProfile() {
         description: "Tu información personal ha sido actualizada correctamente.",
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       setIsEditing(false);
     } catch (error) {
       toast({
@@ -178,7 +176,11 @@ export default function PatientProfile() {
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                   <span className="text-sm">Cuenta activa</span>
                 </div>
-                {psychologistData ? (
+                {psychologistLoading ? (
+                  <div className="flex items-center justify-center p-3">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : psychologistData ? (
                   <div className="mt-3 bg-white p-3 rounded-md border border-slate-100">
                     <h4 className="text-xs text-muted-foreground mb-1">Psicólogo asignado</h4>
                     <div className="flex items-center gap-2">
