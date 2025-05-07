@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }, express.static(uploadsDir));
   
   // Configurar multer para guardar archivos en el directorio uploads
-  const storage = multer.diskStorage({
+  const multerStorage = multer.diskStorage({
     destination: function (req, file, cb) {
       cb(null, uploadsDir);
     },
@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Crear el middleware de multer con la configuración
   const upload = multer({ 
-    storage: storage,
+    storage: multerStorage,
     limits: {
       fileSize: 5 * 1024 * 1024, // Limitar a 5MB
     },
