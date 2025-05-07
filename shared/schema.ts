@@ -86,6 +86,8 @@ export const appointments = pgTable("appointments", {
   reminder_sent: boolean("reminder_sent").default(false),
   payment_status: varchar("payment_status", { length: 20 }).default("pending").notNull(),
   meeting_type: varchar("meeting_type", { length: 20 }).default("video").notNull(),
+  // Campo para el comprobante de pago
+  payment_receipt: varchar("payment_receipt", { length: 255 }),
 }, (table) => {
   return {
     psychologistIdIdx: index("appointments_psychologist_id_idx").on(table.psychologist_id),
@@ -259,7 +261,9 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   date: z.union([
     z.string().transform((date) => new Date(date)),
     z.date()
-  ])
+  ]),
+  // Campo opcional para el comprobante de pago
+  payment_receipt: z.string().optional()
 });
 
 export const insertAvailabilitySchema = createInsertSchema(availability).omit({ 

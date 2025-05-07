@@ -17,6 +17,7 @@ import Messages from "@/pages/messages";
 import ConsentForms from "@/pages/consent-forms";
 import PatientDashboard from "@/pages/patient-dashboard";
 import AppointmentRequests from "@/pages/appointment-requests";
+import AllPatients from "@/pages/all-patients";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -164,6 +165,9 @@ function AppRoutes() {
       </Route>
       <Route path="/consent-forms">
         <PsychologistRoute path="/consent-forms" component={ConsentForms} />
+      </Route>
+      <Route path="/patients">
+        <PsychologistRoute path="/patients" component={AllPatients} />
       </Route>
       <Route component={NotFound} />
     </Switch>
