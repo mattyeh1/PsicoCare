@@ -12,6 +12,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Form,
@@ -37,7 +38,20 @@ import { DataTable } from "@/components/ui/data-table";
 import { Patient } from "@shared/schema";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Plus, Calendar, MessageSquare, FileText, Edit, Copy } from "lucide-react";
+import { 
+  Plus, 
+  Calendar, 
+  MessageSquare, 
+  FileText, 
+  Edit, 
+  Copy, 
+  User, 
+  Phone, 
+  Mail, 
+  Search,
+  Info,
+  AlertCircle
+} from "lucide-react";
 
 // Form schema for profile update
 const formSchema = z.object({
@@ -74,6 +88,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingPatient, setIsAddingPatient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const isPsychologist = user?.user_type === 'psychologist';
 
   // Fetch user profile data
@@ -102,6 +117,19 @@ const Profile = () => {
   const { data: patients, isLoading: patientsLoading } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
   });
+  
+  // Filtrar pacientes según el término de búsqueda
+  const filteredPatients = patients?.filter(patient => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      patient.name.toLowerCase().includes(query) ||
+      patient.email.toLowerCase().includes(query) ||
+      (patient.phone && patient.phone.toLowerCase().includes(query)) ||
+      (patient.notes && patient.notes.toLowerCase().includes(query))
+    );
+  }) || [];
 
   // Profile form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -531,136 +559,263 @@ const Profile = () => {
           </TabsContent>
           
           <TabsContent value="patients">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Mis pacientes</CardTitle>
-                    <CardDescription>
-                      Gestiona la información y archivos de tus pacientes
-                    </CardDescription>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Mis pacientes</CardTitle>
+                      <CardDescription>
+                        Gestiona la información y archivos de tus pacientes
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => setIsAddingPatient(true)}
+                      disabled={isAddingPatient}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nuevo paciente
+                    </Button>
                   </div>
-                  <Button 
-                    onClick={() => setIsAddingPatient(true)}
-                    disabled={isAddingPatient}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nuevo paciente
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isAddingPatient ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Agregar nuevo paciente</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Form {...patientForm}>
-                        <form onSubmit={patientForm.handleSubmit(onSubmitPatient)} className="space-y-4">
-                          <FormField
-                            control={patientForm.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nombre completo</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Nombre del paciente"
-                                    {...field}
-                                    disabled={isLoading}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={patientForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="paciente@email.com"
-                                    {...field}
-                                    disabled={isLoading}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={patientForm.control}
-                            name="phone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Teléfono (opcional)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="+54 11 1234 5678"
-                                    {...field}
-                                    disabled={isLoading}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={patientForm.control}
-                            name="notes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Notas (opcional)</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Notas relevantes sobre el paciente"
-                                    className="min-h-24"
-                                    {...field}
-                                    disabled={isLoading}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <div className="flex gap-2 justify-end pt-4">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setIsAddingPatient(false)}
-                              disabled={isLoading}
-                            >
-                              Cancelar
-                            </Button>
-                            <Button 
-                              type="submit"
-                              disabled={isLoading}
-                            >
-                              {isLoading ? "Agregando..." : "Agregar paciente"}
-                            </Button>
-                          </div>
-                        </form>
-                      </Form>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <DataTable 
-                    columns={columns} 
-                    data={patients || []} 
-                    searchColumn="name"
-                    searchPlaceholder="Buscar paciente..."
-                  />
+                </CardHeader>
+                
+                {/* Formulario para agregar paciente */}
+                {isAddingPatient && (
+                  <CardContent>
+                    <Card className="border-2 border-primary/20 bg-primary/5">
+                      <CardHeader className="bg-primary/10">
+                        <CardTitle className="flex items-center">
+                          <User className="h-5 w-5 mr-2 text-primary" />
+                          Agregar nuevo paciente
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        <Form {...patientForm}>
+                          <form onSubmit={patientForm.handleSubmit(onSubmitPatient)} className="space-y-4">
+                            <FormField
+                              control={patientForm.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nombre completo</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="Nombre del paciente"
+                                      {...field}
+                                      disabled={isLoading}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={patientForm.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="paciente@email.com"
+                                      {...field}
+                                      disabled={isLoading}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={patientForm.control}
+                              name="phone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Teléfono (opcional)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="+54 11 1234 5678"
+                                      {...field}
+                                      disabled={isLoading}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={patientForm.control}
+                              name="notes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Notas (opcional)</FormLabel>
+                                  <FormControl>
+                                    <Textarea 
+                                      placeholder="Notas relevantes sobre el paciente"
+                                      className="min-h-24"
+                                      {...field}
+                                      disabled={isLoading}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <div className="flex gap-2 justify-end pt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsAddingPatient(false)}
+                                disabled={isLoading}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button 
+                                type="submit"
+                                disabled={isLoading}
+                              >
+                                {isLoading ? "Agregando..." : "Agregar paciente"}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </CardContent>
+                    </Card>
+                  </CardContent>
                 )}
-              </CardContent>
-            </Card>
+              </Card>
+              
+              {/* Barra de búsqueda */}
+              {!isAddingPatient && (
+                <div className="flex items-center gap-2 max-w-md mx-auto">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Buscar paciente por nombre o email..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Lista de pacientes en tarjetas */}
+              {!isAddingPatient && (
+                <div>
+                  {patientsLoading ? (
+                    <div className="flex justify-center items-center py-10">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                    </div>
+                  ) : patients && patients.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredPatients.map((patient) => (
+                        <Card key={patient.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                          <div className="bg-primary/10 p-4">
+                            <div className="flex items-center gap-4">
+                              <div className="bg-primary/90 text-primary-foreground rounded-full h-12 w-12 flex items-center justify-center text-xl font-semibold">
+                                {patient.name.substring(0, 1).toUpperCase()}
+                              </div>
+                              <div>
+                                <h3 className="font-medium text-lg">{patient.name}</h3>
+                                <p className="text-sm text-muted-foreground">{patient.created_at ? 
+                                  `Desde ${format(new Date(patient.created_at), "MMM yyyy")}` : 
+                                  "Paciente"}</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <CardContent className="pt-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-sm">{patient.email}</p>
+                              </div>
+                              
+                              {patient.phone && (
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-sm">{patient.phone}</p>
+                                </div>
+                              )}
+                              
+                              {patient.notes && (
+                                <div className="flex items-start gap-2 mt-3">
+                                  <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                  <p className="text-sm text-muted-foreground line-clamp-2">{patient.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                          
+                          <CardFooter className="border-t bg-muted/30 px-4 py-3">
+                            <div className="flex items-center justify-between w-full">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full h-8 px-3"
+                                asChild
+                              >
+                                <a href={`/appointments?patient=${patient.id}`}>
+                                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                                  Citas
+                                </a>
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full h-8 px-3"
+                                asChild
+                              >
+                                <a href={`/messages?patient=${patient.id}`}>
+                                  <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                                  Mensajes
+                                </a>
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full h-8 px-3"
+                                asChild
+                              >
+                                <a href={`/consent-forms?patient=${patient.id}`}>
+                                  <FileText className="h-3.5 w-3.5 mr-1.5" />
+                                  Docs
+                                </a>
+                              </Button>
+                            </div>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="bg-muted rounded-full p-3 mb-4">
+                        <User className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-lg font-medium mb-1">No hay pacientes registrados</h3>
+                      <p className="text-muted-foreground text-sm max-w-md">
+                        Agrega un nuevo paciente para comenzar a gestionar su información, citas y documentos.
+                      </p>
+                      <Button 
+                        onClick={() => setIsAddingPatient(true)} 
+                        className="mt-6"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Agregar paciente
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
