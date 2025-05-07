@@ -1,51 +1,51 @@
-import React from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { User } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 
-// Esquema para formulario de perfil de paciente
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+// Esquema de validación para el formulario
 const formSchema = z.object({
   full_name: z.string().min(3, {
-    message: "El nombre debe tener al menos 3 caracteres.",
+    message: "El nombre completo debe tener al menos 3 caracteres",
   }),
   email: z.string().email({
-    message: "Email inválido.",
+    message: "Por favor introduce un email válido",
   }),
   phone: z.string().optional(),
   notes: z.string().optional(),
 });
 
-// Tipo de datos para usuario
-type User = {
-  id: number;
-  username: string;
-  full_name: string;
-  email: string;
-  user_type: 'psychologist' | 'patient';
-  phone?: string;
-  notes?: string;
-  profile_image?: string;
-  psychologist_id?: number;
-};
-
-export default function PatientProfilePage(): React.ReactNode {
-  // Estado local
+export default function PatientProfile() {
+  // Estados locales
   const [isEditing, setIsEditing] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-
-  // Obtener toast
   const { toast } = useToast();
-
-  // Formulario para perfil de usuario
+  
+  // Configuración del formulario
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,33 +55,21 @@ export default function PatientProfilePage(): React.ReactNode {
       notes: "",
     },
   });
-
-  // Fetch user profile data
+  
+  // Obtener datos del usuario actual
   const { data: userData, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/me"]
   });
   
-  // Log para depuración
-  console.log("Intentando obtener datos del psicólogo con ID:", userData?.psychologist_id);
-  
-  // Obtener información del psicólogo asociado al paciente usando la ruta /api/my-psychologist
-  const { data: psychologistData, isLoading: psychologistLoading, error: psychologistError } = useQuery<User>({
+  // Obtener información del psicólogo asociado al paciente
+  const { data: psychologistData } = useQuery<User>({
     queryKey: ["/api/my-psychologist"],
     enabled: userData?.user_type === 'patient',
-    refetchOnMount: true,
+    retry: 1,
     refetchOnWindowFocus: false,
   });
   
-  // Log para verificar que se está obteniendo correctamente el psicólogo
-  React.useEffect(() => {
-    console.log("Estado del psicólogo:", { 
-      userData,
-      psychologistData, 
-      psychologistLoading, 
-      psychologistError,
-      userType: userData?.user_type
-    });
-  }, [userData, psychologistData, psychologistLoading, psychologistError]);
+  console.log("Datos de psicólogo:", psychologistData);
   
   // Determinar el tipo de usuario basado en los datos reales del usuario
   const isPatient = userData?.user_type === 'patient';
@@ -95,8 +83,6 @@ export default function PatientProfilePage(): React.ReactNode {
         phone: userData.phone || "",
         notes: userData.notes || "",
       });
-      // Log para depuración
-      console.log("Datos de usuario recibidos:", JSON.stringify(userData, null, 2));
     }
   }, [userData, form]);
 
@@ -162,7 +148,7 @@ export default function PatientProfilePage(): React.ReactNode {
                   {userData?.profile_image ? (
                     <img 
                       src={userData.profile_image} 
-                      alt={userData.full_name}
+                      alt={userData.full_name || ""}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -275,125 +261,119 @@ export default function PatientProfilePage(): React.ReactNode {
                   </div>
                 </div>
               ) : (
-              <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Información básica</h3>
+                <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Información básica</h3>
+                          
+                          <FormField
+                            control={form.control}
+                            name="full_name"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Nombre completo</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Introduce tu nombre completo" 
+                                    className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Email</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Introduce tu email" 
+                                    type="email" 
+                                    className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         
-                        <FormField
-                          control={form.control}
-                          name="full_name"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Nombre completo</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Introduce tu nombre completo" 
-                                  className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Email</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Introduce tu email" 
-                                  type="email" 
-                                  className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="space-y-4">
+                          <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Contacto</h3>
+                          
+                          <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Teléfono</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Introduce tu teléfono" 
+                                    className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Notas adicionales</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Introduce notas adicionales" 
+                                    className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary min-h-[100px]" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
                       
-                      <div className="space-y-4">
-                        <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Contacto</h3>
-                        
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Teléfono</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Introduce tu número de teléfono" 
-                                  className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="notes"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Notas adicionales</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Información adicional que quieras compartir con tu psicólogo" 
-                                  className="min-h-[100px] border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                      <div className="flex justify-end gap-2 mt-6">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsEditing(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          type="submit"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Guardando...
+                            </>
+                          ) : "Guardar cambios"}
+                        </Button>
                       </div>
-                    </div>
-                    
-                    <div className="flex justify-end gap-3 mt-8">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="rounded-full px-5"
-                        onClick={() => setIsEditing(false)}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        className="rounded-full px-5 shadow-md" 
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Guardando...
-                          </>
-                        ) : (
-                          "Guardar cambios"
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Aquí podrías añadir más secciones para pacientes en el futuro */}
-        
+                    </form>
+                  </Form>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
