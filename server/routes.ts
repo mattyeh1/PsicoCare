@@ -995,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Ruta para que un paciente solicite una cita
-  app.post("/api/my-appointments", isAuthenticated, async (req, res) => {
+  app.post("/api/my-appointments", isAuthenticated, upload.single('payment_receipt'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const userType = (req.user as any).user_type;
@@ -1034,7 +1034,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         psychologist_id: patient.psychologist_id,
         patient_id: patient.id,
         status: "pending" as const, // Las citas solicitadas por pacientes están pendientes de aprobación
-        notes: req.body.notes || null
+        notes: req.body.notes || null,
+        // Añadir la ruta del comprobante de pago si se subió un archivo
+        payment_receipt: req.file ? `/uploads/${req.file.filename}` : null
       } as InsertAppointment;
       
       console.log(`Paciente #${userId} solicitando cita con datos:`, appointmentData);
