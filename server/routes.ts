@@ -183,10 +183,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/patients", isAuthenticated, isPsychologist, async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const patients = await storage.getPatientsForPsychologist(userId);
-      res.json(patients);
+      console.log(`Consultando pacientes para psicólogo con ID: ${userId}`);
+      
+      // Utilizamos acceso directo a la base de datos para diagnosticar posibles problemas
+      try {
+        const results = await db.select()
+          .from(patients)
+          .where(eq(patients.psychologist_id, userId))
+          .orderBy(patients.name);
+        
+        console.log(`Pacientes encontrados con consulta directa: ${results.length}`);
+        res.json(results);
+      } catch (dbError) {
+        console.error("Error en consulta directa a DB:", dbError);
+        // Intentar usar el método del storage como respaldo
+        const patients = await storage.getPatientsForPsychologist(userId);
+        res.json(patients);
+      }
     } catch (error) {
-      res.status(500).json({ message: "Error fetching patients" });
+      console.error("Error al obtener pacientes:", error);
+      res.status(500).json({ 
+        message: "Error fetching patients", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
