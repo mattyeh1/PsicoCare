@@ -12,7 +12,7 @@ import RegisterPsychologist from "@/pages/register-psychologist";
 import RegisterPatient from "@/pages/register-patient";
 import Dashboard from "@/pages/dashboard";
 import PsychologistProfile from "@/pages/profile-new";
-import PatientProfile from "@/pages/patient-profile";
+import PatientProfile from "@/pages/patient-profile-new";
 import Appointments from "@/pages/appointments";
 import Messages from "@/pages/messages";
 import ConsentForms from "@/pages/consent-forms";

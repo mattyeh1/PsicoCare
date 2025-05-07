@@ -117,7 +117,6 @@ export default function PatientProfilePage() {
     return null;
   }
 
-  // Renderizado principal
   return (
     <div className="container py-8 max-w-6xl mx-auto">
       <div className="flex flex-col gap-8">
@@ -235,125 +234,123 @@ export default function PatientProfilePage() {
                   </div>
                 </div>
               ) : (
-              <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Información básica</h3>
+                <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Información básica</h3>
+                          
+                          <FormField
+                            control={form.control}
+                            name="full_name"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Nombre completo</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Introduce tu nombre completo" 
+                                    className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Email</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Introduce tu email" 
+                                    type="email" 
+                                    className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         
-                        <FormField
-                          control={form.control}
-                          name="full_name"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Nombre completo</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Introduce tu nombre completo" 
-                                  className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Email</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Introduce tu email" 
-                                  type="email" 
-                                  className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="space-y-4">
+                          <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Contacto</h3>
+                          
+                          <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Teléfono</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Introduce tu número de teléfono" 
+                                    className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                              <FormItem className="bg-white p-4 rounded-md border border-slate-100">
+                                <FormLabel className="text-sm text-primary-700">Notas adicionales</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Información adicional que quieras compartir con tu psicólogo" 
+                                    className="min-h-[100px] border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
                       
-                      <div className="space-y-4">
-                        <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-1">Contacto</h3>
-                        
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Teléfono</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Introduce tu número de teléfono" 
-                                  className="border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
+                      <div className="flex justify-end gap-3 mt-8">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-full px-5"
+                          onClick={() => setIsEditing(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          className="rounded-full px-5 shadow-md" 
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Guardando...
+                            </>
+                          ) : (
+                            "Guardar cambios"
                           )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="notes"
-                          render={({ field }) => (
-                            <FormItem className="bg-white p-4 rounded-md border border-slate-100">
-                              <FormLabel className="text-sm text-primary-700">Notas adicionales</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Información adicional que quieras compartir con tu psicólogo" 
-                                  className="min-h-[100px] border-0 border-b rounded-none px-0 shadow-none focus-visible:ring-0 focus-visible:border-primary" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                        </Button>
                       </div>
-                    </div>
-                    
-                    <div className="flex justify-end gap-3 mt-8">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="rounded-full px-5"
-                        onClick={() => setIsEditing(false)}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        className="rounded-full px-5 shadow-md" 
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Guardando...
-                          </>
-                        ) : (
-                          "Guardar cambios"
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Aquí podrías añadir más secciones para pacientes en el futuro */}
-        
+                    </form>
+                  </Form>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
