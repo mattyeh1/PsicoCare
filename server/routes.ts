@@ -20,7 +20,7 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword } from "./auth";
 import { 
   generatePersonalizedMessage, 
   improveMessage, 
@@ -201,6 +201,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error al crear paciente:", error);
       res.status(500).json({ message: "Error creating patient", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+  
+  // Ruta para crear usuarios pacientes desde psicólogos
+  app.post("/api/register/patient", isAuthenticated, isPsychologist, async (req, res) => {
+    try {
+      // Validar que sea un psicólogo quien está creando el paciente
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      
+      if (userType !== 'psychologist') {
+        return res.status(403).json({ 
+          message: "Solo los psicólogos pueden crear cuentas de pacientes" 
+        });
+      }
+      
+      console.log("Psicólogo creando cuenta de paciente:", {
+        userId,
+        patientData: {
+          ...req.body,
+          password: req.body.password ? '[REDACTED]' : undefined
+        }
+      });
+      
+      // Validar los datos básicos
+      if (!req.body.username || !req.body.password || !req.body.email || !req.body.full_name) {
+        return res.status(400).json({ 
+          message: "Faltan datos obligatorios (username, password, email, full_name)" 
+        });
+      }
+      
+      // Comprobar si ya existe un usuario con ese nombre de usuario o email
+      const existingUserByUsername = await storage.getUserByUsername(req.body.username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: "El nombre de usuario ya está en uso" });
+      }
+      
+      const existingUserByEmail = await storage.getUserByEmail(req.body.email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: "El email ya está registrado" });
+      }
+      
+      // Crear el hash de la contraseña
+      const hashedPassword = await hashPassword(req.body.password);
+      
+      // Datos para crear el usuario paciente
+      const userData = {
+        username: req.body.username,
+        password: hashedPassword,
+        email: req.body.email,
+        full_name: req.body.full_name,
+        user_type: 'patient',
+        psychologist_id: userId,
+        specialty: '' // Campo vacío para pacientes
+      };
+      
+      // Crear el usuario paciente
+      const newUser = await storage.createUser(userData);
+      console.log("Usuario paciente creado:", newUser.id);
+      
+      // Crear también la ficha de paciente asociada
+      const patientRecord = {
+        psychologist_id: userId,
+        name: req.body.full_name,
+        email: req.body.email,
+        phone: req.body.phone || "",
+        notes: req.body.notes || ""
+      };
+      
+      // Crear el registro de paciente
+      const patient = await storage.createPatient(patientRecord);
+      console.log("Ficha de paciente creada:", patient.id);
+      
+      // Responder con la información del usuario (sin contraseña)
+      const { password, ...userWithoutPassword } = newUser;
+      
+      res.status(201).json({ 
+        message: "Cuenta de paciente creada exitosamente",
+        user: userWithoutPassword,
+        patient: patient
+      });
+    } catch (error) {
+      console.error("Error al crear cuenta de paciente:", error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: "Datos de paciente inválidos", 
+          errors: fromZodError(error).message
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Error al crear la cuenta del paciente",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
