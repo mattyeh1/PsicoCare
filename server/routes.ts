@@ -1446,5 +1446,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Also expose the broadcastMessage function to be used by message creation API
   (app as any).broadcastMessage = broadcastMessage;
   
+  // Endpoint para obtener el perfil del usuario actual con otra ruta (para compatibilidad)
+  app.get("/api/auth/me", isAuthenticated, (req, res) => {
+    // Simplemente retorna el usuario actual sin la contraseña
+    const { password, ...userData } = req.user as any;
+    res.json(userData);
+  });
+  
   return httpServer;
 }
