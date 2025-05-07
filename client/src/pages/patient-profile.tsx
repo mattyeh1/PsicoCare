@@ -61,10 +61,20 @@ export default function PatientProfilePage(): React.ReactNode {
   });
   
   // Obtener información del psicólogo asociado al paciente
-  const { data: psychologistData } = useQuery<User>({
+  const { data: psychologistData, isLoading: psychologistLoading, error: psychologistError } = useQuery<User>({
     queryKey: ["/api/my-psychologist"],
     enabled: !!userData && userData.user_type === 'patient',
   });
+  
+  // Log para verificar que se está obteniendo correctamente el psicólogo
+  React.useEffect(() => {
+    console.log("Estado del psicólogo:", { 
+      psychologistData, 
+      psychologistLoading, 
+      psychologistError,
+      userType: userData?.user_type
+    });
+  }, [psychologistData, psychologistLoading, psychologistError, userData?.user_type]);
   
   // Determinar el tipo de usuario basado en los datos reales del usuario
   const isPatient = userData?.user_type === 'patient';
