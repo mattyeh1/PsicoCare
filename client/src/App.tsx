@@ -11,7 +11,7 @@ import RegisterSelection from "@/pages/register-selection";
 import RegisterPsychologist from "@/pages/register-psychologist";
 import RegisterPatient from "@/pages/register-patient";
 import Dashboard from "@/pages/dashboard";
-import Profile from "@/pages/profile";
+import Profile from "@/pages/profile-new";
 import Appointments from "@/pages/appointments";
 import Messages from "@/pages/messages";
 import ConsentForms from "@/pages/consent-forms";

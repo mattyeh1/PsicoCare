@@ -144,52 +144,56 @@ const Profile = () => {
     );
   }) || [];
 
-  // Extendemos el esquema para incluir validación de contraseña coincidente
-  const patientUserFormSchema = z.object({
-    name: z.string().min(3, {
-      message: "El nombre del paciente debe tener al menos 3 caracteres.",
+  // Definimos un esquema simple para pacientes primero
+const simplePatientSchema = z.object({
+  name: z.string().min(3, {
+    message: "El nombre del paciente debe tener al menos 3 caracteres.",
+  }),
+  email: z.string().email({
+    message: "Ingresa un email válido.",
+  }),
+  phone: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+// Extendemos el esquema para incluir validación de creación de cuenta
+const patientUserFormSchema = simplePatientSchema.extend({
+  // Campos para la creación de cuenta
+  createAccount: z.boolean().default(false),
+  username: z.string().optional()
+    .refine(val => !val || val.length >= 4, {
+      message: "El nombre de usuario debe tener al menos 4 caracteres"
     }),
-    email: z.string().email({
-      message: "Ingresa un email válido.",
+  password: z.string().optional()
+    .refine(val => !val || val.length >= 6, {
+      message: "La contraseña debe tener al menos 6 caracteres"
     }),
-    phone: z.string().optional(),
-    notes: z.string().optional(),
-    // Campos para la creación de cuenta
-    createAccount: z.boolean().default(false),
-    username: z.string().optional()
-      .refine(val => !val || val.length >= 4, {
-        message: "El nombre de usuario debe tener al menos 4 caracteres"
-      }),
-    password: z.string().optional()
-      .refine(val => !val || val.length >= 6, {
-        message: "La contraseña debe tener al menos 6 caracteres"
-      }),
-    confirmPassword: z.string().optional(),
-  }).refine(
-    // Si createAccount es true, los campos username y password son obligatorios
-    (data) => {
-      if (data.createAccount) {
-        return !!data.username && !!data.password;
-      }
-      return true;
-    },
-    {
-      message: "Nombre de usuario y contraseña son obligatorios para crear una cuenta",
-      path: ["username", "password"],
+  confirmPassword: z.string().optional(),
+}).refine(
+  // Si createAccount es true, los campos username y password son obligatorios
+  (data) => {
+    if (data.createAccount) {
+      return !!data.username && !!data.password;
     }
-  ).refine(
-    // Si createAccount es true, las contraseñas deben coincidir
-    (data) => {
-      if (data.createAccount && data.password) {
-        return data.password === data.confirmPassword;
-      }
-      return true;
-    },
-    {
-      message: "Las contraseñas no coinciden",
-      path: ["confirmPassword"],
+    return true;
+  },
+  {
+    message: "Nombre de usuario y contraseña son obligatorios para crear una cuenta",
+    path: ["username", "password"],
+  }
+).refine(
+  // Si createAccount es true, las contraseñas deben coincidir
+  (data) => {
+    if (data.createAccount && data.password) {
+      return data.password === data.confirmPassword;
     }
-  );
+    return true;
+  },
+  {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  }
+);
 
   // Patient form
   const patientForm = useForm<z.infer<typeof patientUserFormSchema>>({
@@ -776,26 +780,24 @@ const Profile = () => {
                   </div>
                 </CardHeader>
                 
-                {/* Formulario para agregar paciente */}
+                {/* Formulario para agregar paciente - Versión simplificada */}
                 {isAddingPatient && (
                   <CardContent>
                     <Card className="border-2 border-primary/20 bg-primary/5">
                       <CardHeader className="bg-primary/10">
                         <CardTitle className="flex items-center">
-                          <User className="h-5 w-5 mr-2 text-primary" />
+                          <UserPlus className="h-5 w-5 mr-2 text-primary" />
                           Agregar nuevo paciente
                         </CardTitle>
+                        <CardDescription>
+                          Añade un nuevo paciente a tu lista
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="pt-6">
                         <Form {...patientForm}>
                           <form onSubmit={patientForm.handleSubmit(onSubmitPatient)} className="space-y-6">
                             {/* Datos básicos del paciente */}
-                            <div>
-                              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                <FileText className="h-5 w-5 text-primary/70" /> 
-                                Información del paciente
-                              </h3>
-                              <div className="space-y-4">
+                            <div className="space-y-4">
                                 <FormField
                                   control={patientForm.control}
                                   name="name"
