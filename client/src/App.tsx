@@ -19,6 +19,7 @@ import ConsentForms from "@/pages/consent-forms";
 import PatientDashboard from "@/pages/patient-dashboard";
 import AppointmentRequests from "@/pages/appointment-requests";
 import AllPatients from "@/pages/all-patients";
+import Presentacion from "@/pages/presentacion";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -146,6 +147,8 @@ function AppRoutes() {
       <Route path="/register-patient" component={RegisterPatient} />
       {/* Mantener temporalmente la ruta antigua para compatibilidad */}
       <Route path="/register-old" component={Register} />
+      {/* Página de presentación - accesible sin autenticación */}
+      <Route path="/presentacion" component={Presentacion} />
       <Route path="/dashboard">
         <PsychologistRoute path="/dashboard" component={Dashboard} />
       </Route>
