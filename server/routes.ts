@@ -1058,6 +1058,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Rutas específicas para pacientes
   // Obtener el psicólogo asociado al paciente
+  app.get("/api/patient-info", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userType = (req.user as any).user_type;
+      
+      // Verificar que sea un paciente
+      if (userType !== 'patient') {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "Esta función está disponible solo para pacientes"
+        });
+      }
+      
+      // Obtener los datos del paciente
+      const patient = await storage.getPatientByUserId(userId);
+      
+      if (!patient) {
+        return res.status(404).json({ 
+          error: "No encontrado", 
+          message: "No se encontró información de paciente asociada a tu cuenta"
+        });
+      }
+      
+      // Devolver los datos del paciente
+      res.json(patient);
+    } catch (error) {
+      console.error("Error al obtener información del paciente:", error);
+      res.status(500).json({ 
+        error: "Error del servidor", 
+        message: "No se pudo obtener la información del paciente"
+      });
+    }
+  });
+  
   app.get("/api/my-psychologist", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).id;
