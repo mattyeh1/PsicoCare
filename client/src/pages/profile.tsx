@@ -71,7 +71,7 @@ const formSchema = z.object({
 });
 
 // Patient form schema
-const patientFormSchema = z.object({
+const patientUserFormSchema = z.object({
   name: z.string().min(3, {
     message: "El nombre del paciente debe tener al menos 3 caracteres.",
   }),
@@ -80,7 +80,29 @@ const patientFormSchema = z.object({
   }),
   phone: z.string().optional(),
   notes: z.string().optional(),
-});
+  // Campos para la creación de cuenta
+  createAccount: z.boolean().default(false),
+  username: z.string().optional()
+    .refine(val => !val || val.length >= 4, {
+      message: "El nombre de usuario debe tener al menos 4 caracteres"
+    }),
+  password: z.string().optional()
+    .refine(val => !val || val.length >= 6, {
+      message: "La contraseña debe tener al menos 6 caracteres"
+    }),
+}).refine(
+  // Si createAccount es true, los campos username y password son obligatorios
+  (data) => {
+    if (data.createAccount) {
+      return !!data.username && !!data.password;
+    }
+    return true;
+  },
+  {
+    message: "Nombre de usuario y contraseña son obligatorios para crear una cuenta",
+    path: ["username", "password"],
+  }
+);
 
 const Profile = () => {
   const { user } = useAuth();
@@ -145,20 +167,52 @@ const Profile = () => {
     },
   });
 
-  // Schema extendido para paciente con credenciales
-  const patientUserFormSchema = patientFormSchema.extend({
-    username: z.string()
-      .min(4, { message: "El nombre de usuario debe tener al menos 4 caracteres" })
-      .max(20, { message: "El nombre de usuario debe tener menos de 20 caracteres" })
-      .regex(/^[a-zA-Z0-9_]+$/, { message: "Solo se permiten letras, números y guiones bajos" }),
-    password: z.string()
-      .min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
-    confirmPassword: z.string(),
+  // Extendemos el esquema para incluir validación de contraseña coincidente
+  const patientUserFormSchema = z.object({
+    name: z.string().min(3, {
+      message: "El nombre del paciente debe tener al menos 3 caracteres.",
+    }),
+    email: z.string().email({
+      message: "Ingresa un email válido.",
+    }),
+    phone: z.string().optional(),
+    notes: z.string().optional(),
+    // Campos para la creación de cuenta
     createAccount: z.boolean().default(false),
-  }).refine((data) => !data.createAccount || data.password === data.confirmPassword, {
-    message: "Las contraseñas no coinciden",
-    path: ["confirmPassword"],
-  });
+    username: z.string().optional()
+      .refine(val => !val || val.length >= 4, {
+        message: "El nombre de usuario debe tener al menos 4 caracteres"
+      }),
+    password: z.string().optional()
+      .refine(val => !val || val.length >= 6, {
+        message: "La contraseña debe tener al menos 6 caracteres"
+      }),
+    confirmPassword: z.string().optional(),
+  }).refine(
+    // Si createAccount es true, los campos username y password son obligatorios
+    (data) => {
+      if (data.createAccount) {
+        return !!data.username && !!data.password;
+      }
+      return true;
+    },
+    {
+      message: "Nombre de usuario y contraseña son obligatorios para crear una cuenta",
+      path: ["username", "password"],
+    }
+  ).refine(
+    // Si createAccount es true, las contraseñas deben coincidir
+    (data) => {
+      if (data.createAccount && data.password) {
+        return data.password === data.confirmPassword;
+      }
+      return true;
+    },
+    {
+      message: "Las contraseñas no coinciden",
+      path: ["confirmPassword"],
+    }
+  );
 
   // Patient form
   const patientForm = useForm<z.infer<typeof patientUserFormSchema>>({
@@ -204,17 +258,33 @@ const Profile = () => {
   const onSubmitPatient = async (values: z.infer<typeof patientUserFormSchema>) => {
     setIsLoading(true);
     try {
+      // Verificar autenticación del usuario
+      if (!user?.id) {
+        toast({
+          title: "Error de sesión",
+          description: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("Usuario actual:", user.id, user.username);
+      
       // Añadir el ID del psicólogo explícitamente
       const patientData = {
         name: values.name,
         email: values.email,
-        phone: values.phone,
-        notes: values.notes,
-        psychologist_id: user?.id
+        phone: values.phone || "",
+        notes: values.notes || "",
+        psychologist_id: user.id
       };
+      
+      console.log("Enviando datos de paciente:", {...patientData, psychologist_id: user.id});
       
       // Si se marca la creación de cuenta, también creamos usuario
       if (values.createAccount) {
+        console.log("Creando cuenta de usuario para el paciente");
+        
         // Primero creamos el usuario de tipo paciente
         const userData = {
           username: values.username,
@@ -222,36 +292,69 @@ const Profile = () => {
           email: values.email,
           full_name: values.name,
           user_type: 'patient',
-          psychologist_id: user?.id
+          psychologist_id: user.id,
+          phone: values.phone || "",
+          notes: values.notes || ""
         };
         
-        // Enviar petición para crear usuario paciente
-        const userRes = await apiRequest("POST", "/api/register/patient", userData);
-        const userJson = await userRes.json();
-        
-        if (!userRes.ok) {
-          throw new Error(userJson.message || "Error al crear la cuenta de usuario");
+        // Enviar petición para crear usuario paciente con timeout
+        try {
+          console.log("Enviando solicitud a /api/register/patient");
+          const userRes = await Promise.race([
+            apiRequest("POST", "/api/register/patient", userData),
+            new Promise<Response>((_, reject) => 
+              setTimeout(() => reject(new Error("Tiempo de espera agotado")), 10000)
+            ) as Promise<Response>
+          ]);
+          
+          console.log("Respuesta recibida:", userRes.status);
+          const userJson = await userRes.json();
+          
+          if (!userRes.ok) {
+            throw new Error(userJson.message || "Error al crear la cuenta de usuario");
+          }
+          
+          console.log("Cuenta creada exitosamente:", userJson);
+          
+          toast({
+            title: "Cuenta creada",
+            description: "Se ha creado la cuenta de paciente con éxito",
+          });
+        } catch (err) {
+          console.error("Error creando cuenta:", err);
+          throw err;
         }
-        
-        toast({
-          title: "Cuenta creada",
-          description: "Se ha creado la cuenta de paciente con éxito",
-        });
       } else {
         // Solo crear el paciente sin cuenta de usuario
-        const res = await apiRequest("POST", "/api/patients", patientData);
-        await res.json();
+        console.log("Creando solo ficha de paciente (sin cuenta de usuario)");
+        try {
+          const res = await apiRequest("POST", "/api/patients", patientData);
+          const jsonResponse = await res.json();
+          console.log("Paciente creado:", jsonResponse);
+          
+          if (!res.ok) {
+            throw new Error("Error al crear el paciente");
+          }
+        } catch (err) {
+          console.error("Error creando paciente:", err);
+          throw err;
+        }
       }
+      
+      // Recargar la lista de pacientes
+      queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
       
       toast({
         title: "Paciente agregado",
         description: "El paciente ha sido agregado correctamente a tu lista de pacientes.",
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+      // Resetear formulario y cerrar
       patientForm.reset();
       setIsAddingPatient(false);
     } catch (error: any) {
+      console.error("Error en submit:", error);
+      
       toast({
         title: "Error",
         description: error.message || "No se pudo agregar el paciente. Inténtalo de nuevo.",
