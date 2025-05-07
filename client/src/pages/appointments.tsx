@@ -54,7 +54,8 @@ import {
   Calendar as CalendarIcon2,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppointmentCalendar from "@/components/calendar/AppointmentCalendar";

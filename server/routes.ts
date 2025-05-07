@@ -28,6 +28,9 @@ import {
   type MessageGenerationParams 
 } from "./services/openai";
 import { db } from "./db";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { eq } from "drizzle-orm";
 import { 
   generateICalendarEvent, 
@@ -37,6 +40,41 @@ import {
 } from "@shared/utils/calendarUtils";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Asegurarnos de que el directorio uploads existe
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  
+  // Configurar multer para guardar archivos en el directorio uploads
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    }
+  });
+  
+  // Crear el middleware de multer con la configuración
+  const upload = multer({ 
+    storage: storage,
+    limits: {
+      fileSize: 5 * 1024 * 1024, // Limitar a 5MB
+    },
+    fileFilter: (req, file, cb) => {
+      // Aceptar solo imágenes y PDFs
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de archivo no soportado. Solo se permiten JPG, PNG y PDF.'));
+      }
+    }
+  });
+  
   // Setup authentication
   setupAuth(app);
 
@@ -208,10 +246,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/appointments", isAuthenticated, isPsychologist, validateRequest(insertAppointmentSchema), async (req, res) => {
+  app.post("/api/appointments", isAuthenticated, isPsychologist, upload.single('payment_receipt'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const appointmentData = { ...req.body, psychologist_id: userId };
+      
+      // Extraer datos del formulario y crear objeto de cita
+      const appointmentData: any = {
+        patient_id: parseInt(req.body.patient_id),
+        psychologist_id: userId,
+        date: req.body.date,
+        duration: parseInt(req.body.duration),
+        status: req.body.status || 'scheduled',
+        notes: req.body.notes || null
+      };
+      
+      // Agregar la ruta del archivo si fue subido
+      if (req.file) {
+        appointmentData.payment_receipt = `/uploads/${req.file.filename}`;
+        console.log("Archivo recibido:", req.file);
+      }
       
       console.log("Datos de cita a crear:", appointmentData);
       
