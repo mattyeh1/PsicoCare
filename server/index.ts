@@ -5,26 +5,23 @@ import cors from "cors";
 
 const app = express();
 
-// Configurar CORS para permitir el intercambio de cookies entre cliente y servidor
-// Con configuración detallada para solucionar problemas de autenticación
+// Configuración CORS (mantén tu configuración actual)
 const corsOptions = {
   origin: (origin, callback) => {
-    // En desarrollo, permitir cualquier origen incluso 'null'
     callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true, // Esencial: permite que las cookies se envíen con las solicitudes
+  credentials: true,
   exposedHeaders: ['set-cookie'],
-  maxAge: 86400, // 1 día en segundos, reduce preflight requests
+  maxAge: 86400,
 };
 
 app.use(cors(corsOptions));
 
-// Middleware adicional para asegurarse de que las cabeceras de CORS se establecen siempre
+// Middlewares (mantén tus middlewares actuales)
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
-  // Permitir todos los orígenes, incluso 'null' - no es apropiado para producción pero útil en desarrollo
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
@@ -34,6 +31,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Middleware de logging (mantén tu implementación actual)
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -52,43 +50,34 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
       log(logLine);
     }
   });
-
   next();
 });
 
-(async () => {
+// Exporta la app sin iniciar el servidor (¡CRUCIAL para Vercel!)
+export default (async () => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
+    
+    // Solo en desarrollo usamos puerto fijo
+    const port = 5000;
+    server.listen(port, "0.0.0.0", () => {
+      log(`Server is running at http://0.0.0.0:${port}`);
+    });
   } else {
     serveStatic(app);
+    // En producción, Vercel manejará el puerto automáticamente
+    return server; // <-- Esto permite a Vercel iniciar el servidor
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen(port, "0.0.0.0", () => {
-    log(`Server is running at http://0.0.0.0:${port}`);
-  });
 })();
